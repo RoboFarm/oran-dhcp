@@ -1,0 +1,35 @@
+#!/bin/bash
+# postinst -- dhcp-oru-toolkit
+# If a distro-provided dhcp-lease-list already lives in the same directory we
+# install into (/usr/local/sbin), preserve it once so it can be restored on
+# removal. NOTE: backup and install paths are now CONSISTENT (both
+# /usr/local/sbin); the v1.x package incorrectly backed up /usr/sbin while
+# installing to /usr/local/sbin.
+set -e
+
+SBIN="/usr/local/sbin"
+ORIG="${SBIN}/dhcp-lease-list"
+BACKUP="${SBIN}/dhcp-lease-list.distrib"
+
+case "$1" in
+    configure)
+        # Only back up a pre-existing *foreign* binary, never our own wrapper.
+        if [[ -f "${ORIG}" && ! -f "${BACKUP}" ]]; then
+            if ! grep -q "dhcp-oru-toolkit" "${ORIG}" 2>/dev/null; then
+                cp -a "${ORIG}" "${BACKUP}"
+                echo "Backed up existing ${ORIG} to ${BACKUP}"
+            fi
+        fi
+        echo "dhcp-oru-toolkit 2.0.0 installed."
+        echo "  dhcp-lease-list -> ${SBIN}/dhcp-lease-list"
+        echo "  dhcp-forensics  -> ${SBIN}/dhcp-forensics"
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+    *)
+        echo "postinst called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

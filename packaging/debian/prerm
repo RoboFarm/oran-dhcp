@@ -1,0 +1,26 @@
+#!/bin/bash
+# prerm -- dhcp-oru-toolkit
+# Restore any binary we backed up in postinst. Backup and restore paths are
+# CONSISTENT with the install path (/usr/local/sbin).
+set -e
+
+SBIN="/usr/local/sbin"
+ORIG="${SBIN}/dhcp-lease-list"
+BACKUP="${SBIN}/dhcp-lease-list.distrib"
+
+case "$1" in
+    remove|deconfigure)
+        if [[ -f "${BACKUP}" ]]; then
+            mv -f "${BACKUP}" "${ORIG}"
+            echo "Restored original ${ORIG}"
+        fi
+        ;;
+    upgrade|failed-upgrade)
+        ;;
+    *)
+        echo "prerm called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

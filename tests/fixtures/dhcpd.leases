@@ -1,0 +1,45 @@
+# ISC dhcpd.leases -- BROKEN state captured during the O-RU xid-reuse incident.
+# Unit 34:fe:9e:3d:ad:c8 holds TWO active leases (.171 and .172) -- the symptom
+# of the shared-xid IP-theft defect. A third, healthy lease is included so the
+# conflict detector can distinguish the duplicate from normal leases.
+
+lease 192.168.36.171 {
+  starts 4 2026/06/01 13:45:03;
+  ends 5 2099/12/31 23:59:59;
+  cltt 4 2026/06/01 13:45:03;
+  binding state active;
+  next binding state free;
+  rewind binding state free;
+  hardware ethernet 34:fe:9e:3d:ad:c8;
+  client-hostname "oru-adc8";
+  set vendor-class-identifier = "o-ran-ru2/FJ/44R26-N25N66-DC/A2256600222";
+  option vendor-class-identifier "o-ran-ru2/FJ/44R26-N25N66-DC/A2256600222";
+}
+lease 192.168.36.172 {
+  starts 4 2026/06/01 13:45:03;
+  ends 5 2099/12/31 23:59:59;
+  cltt 4 2026/06/01 13:45:03;
+  binding state active;
+  next binding state free;
+  rewind binding state free;
+  hardware ethernet 34:fe:9e:3d:ad:c8;
+  client-hostname "oru-adc8";
+  option vendor-class-identifier "o-ran-ru2/FJ/44R26-N25N66-DC/A2256600222";
+}
+lease 192.168.36.170 {
+  starts 4 2026/06/01 13:45:03;
+  ends 5 2099/12/31 23:59:59;
+  cltt 4 2026/06/01 13:45:03;
+  binding state active;
+  next binding state free;
+  hardware ethernet 34:fe:9e:3d:ad:a8;
+  client-hostname "oru-ada8";
+  option vendor-class-identifier "o-ran-ru2/FJ/44R26-N25N66-DC/A2256600363";
+}
+lease 192.168.36.160 {
+  starts 4 2026/06/01 13:45:03;
+  ends 5 2020/01/01 00:00:00;
+  cltt 4 2026/06/01 13:45:03;
+  binding state free;
+  hardware ethernet 34:fe:9e:3d:af:5c;
+}

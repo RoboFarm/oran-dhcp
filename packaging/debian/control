@@ -1,0 +1,23 @@
+Package: dhcp-oru-toolkit
+Version: 2.0.0
+Section: net
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.8)
+Maintainer: labuser <labuser@dhcp-server>
+Homepage: https://example.invalid/dhcp-oru-toolkit
+Description: DHCP lease viewer and O-RU shared-xid forensics toolkit
+ Zero-dependency (pure Python standard library) tooling for operating and
+ troubleshooting DHCP for Fujitsu O-RAN radio units (O-RUs).
+ .
+ Ships two command-line tools:
+  - dhcp-lease-list: unified ISC/Kea DHCP lease viewer (IPv4 + IPv6) with a
+    --conflicts mode that flags one MAC holding multiple active IPs or one IP
+    held by multiple active MACs.
+  - dhcp-forensics: pure-stdlib pcap/DHCP analyzer that detects the O-RU
+    DHCPv4 transaction-id (xid) reuse defect -- shared xid across units,
+    reaction to foreign OFFERs, and the missing option 61 client-identifier.
+ .
+ The dhcp_toolkit Python package is installed under
+ /usr/local/lib/dhcp-oru-toolkit and both tools are thin wrappers in
+ /usr/local/sbin that run it with python3.

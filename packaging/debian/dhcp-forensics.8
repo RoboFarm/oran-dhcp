@@ -1,0 +1,78 @@
+.TH DHCP-FORENSICS 8 "2026-06-02" "dhcp-oru-toolkit 2.0.0" "System Administration"
+.SH NAME
+dhcp-forensics \- analyze a pcap for the O-RU DHCPv4 shared-xid defect
+.SH SYNOPSIS
+.B dhcp-forensics
+.I PCAP
+.RI [ \-\-json ]
+.RI [ \-\-leases\ FILE ]
+.RI [ \-\-config\ FILE ]
+.RI [ \-\-no\-color ]
+.SH DESCRIPTION
+.B dhcp-forensics
+is a pure standard-library packet analyzer that reads a classic
+.I pcap
+or minimal
+.I pcapng
+capture (Ethernet / linktype 1, with 802.1Q and QinQ VLAN tags stripped),
+decodes DHCPv4 and DHCPv6 messages, groups DHCPv4 messages into transactions by
+their transaction id (xid), and reports findings for the Fujitsu O-RU DHCPv4
+defect described in the bug report.
+.PP
+It does not require scapy, dpkt, tshark or tcpdump; all parsing is done with the
+Python standard library only.
+.PP
+The analyzer detects, among others:
+.RS
+.IP \(bu 3
+shared xid across multiple units (RFC 2131 \(sc4.1);
+.IP \(bu 3
+units reacting to OFFERs whose chaddr is not their own (RFC 2131 \(sc4.4.1);
+.IP \(bu 3
+missing DHCPv4 option 61 client-identifier (RFC 4361 / O-RAN WG4 \(sc6.2.4);
+.IP \(bu 3
+chaddr / Ethernet-source mismatch and duplicate IP grants.
+.RE
+.SH OPTIONS
+.TP
+.B \-\-json
+Emit the full report as JSON instead of the rendered text report.
+.TP
+.B \-\-leases \fIFILE\fR
+Correlate findings with an ISC/Kea lease file (cross-checks granted IPs).
+.TP
+.B \-\-config \fIFILE\fR
+Read an ISC dhcpd.conf to map vendor classes / pools when reporting.
+.TP
+.B \-\-no\-color
+Disable ANSI color output.
+.SH EXIT STATUS
+.TP
+.B 0
+The capture was analyzed and no HIGH-severity findings were produced.
+.TP
+.B 2
+At least one HIGH-severity finding was produced (for example, shared xid /
+IP theft detected).
+.TP
+.B 1
+A usage or runtime error occurred (for example, the pcap could not be read).
+.SH EXAMPLES
+.TP
+Analyze a capture and print the text report:
+.B dhcp-forensics capture.pcap
+.TP
+Machine-readable output for a dashboard:
+.B dhcp-forensics capture.pcap \-\-json
+.TP
+Analyze the synthesized O-RU reproduction fixture:
+.B dhcp-forensics tests/fixtures/oru_xid_reuse.pcap
+.TP
+Cross-check against the server's lease database:
+.B dhcp-forensics capture.pcap \-\-leases /var/lib/dhcp/dhcpd.leases
+.SH SEE ALSO
+.BR dhcp-lease-list (8),
+.BR dhcpd (8),
+.BR pcap (3)
+.SH AUTHOR
+labuser, as part of dhcp-oru-toolkit.

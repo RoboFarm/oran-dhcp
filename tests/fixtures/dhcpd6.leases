@@ -1,0 +1,34 @@
+# ISC dhcpd6.leases -- DHCPv6 is the UNAFFECTED control plane.
+# Each O-RU has a UNIQUE DUID (no shared transaction-id problem here).
+# Blocks exercise DUID-LLT (type 1), DUID-LL (type 3), DUID-EN (type 2)
+# so extract_mac_from_duid is testable for all three encodings.
+
+server-duid "\000\001\000\001\051\244\363\000\002\000\136\000\000\001";
+
+ia-na "\000\001\000\001\000\001\000\001)\244\363\0004\376\236=\255\250" {
+  cltt 4 2026/06/01 13:45:03;
+  iaaddr fd00:36::171 {
+    binding state active;
+    preferred-life 3600;
+    max-life 7200;
+    ends 5 2099/12/31 23:59:59;
+  }
+}
+ia-na "\000\001\000\001\000\003\000\0014\376\236=\255\310" {
+  cltt 4 2026/06/01 13:45:03;
+  iaaddr fd00:36::172 {
+    binding state active;
+    preferred-life 3600;
+    max-life 7200;
+    ends 5 2099/12/31 23:59:59;
+  }
+}
+ia-na "\000\001\000\001\000\002\000\000\011734:fe:9e:3d:af:5c" {
+  cltt 4 2026/06/01 13:45:03;
+  iaaddr fd00:36::173 {
+    binding state active;
+    preferred-life 3600;
+    max-life 7200;
+    ends 5 2099/12/31 23:59:59;
+  }
+}

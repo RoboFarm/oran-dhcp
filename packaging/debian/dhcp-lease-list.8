@@ -1,0 +1,81 @@
+.TH DHCP-LEASE-LIST 8 "2026-06-02" "dhcp-oru-toolkit 2.0.0" "System Administration"
+.SH NAME
+dhcp-lease-list \- display ISC or Kea DHCP IPv4 and IPv6 leases
+.SH SYNOPSIS
+.B dhcp-lease-list
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B dhcp-lease-list
+reads ISC DHCP (\fIdhcpd.leases\fR / \fIdhcpd6.leases\fR) or Kea DHCP
+(\fIkea-leases4.csv\fR / \fIkea-leases6.csv\fR) lease databases and prints a
+unified, color-coded view of IPv4 and IPv6 leases. It extracts the client MAC
+address from DHCPv6 DUIDs (DUID-LLT, DUID-EN, DUID-LL) where possible and
+de-duplicates Kea journal CSVs so that the last active entry per IP wins.
+.PP
+With
+.B \-\-conflicts
+it additionally reports lease conflicts: a single MAC holding multiple active
+IP addresses, or a single IP address held by multiple active MACs \(em the
+signature of the O-RU shared-xid IP-theft defect.
+.SH OPTIONS
+.TP
+.B \-\-server {isc,kea}
+DHCP server type (default: isc). Selects the default lease file paths.
+.TP
+.B \-\-v4\-lease \fIFILE\fR
+Path to the IPv4 lease file (overrides the default for the selected server).
+.TP
+.B \-\-v6\-lease \fIFILE\fR
+Path to the IPv6 lease file (overrides the default for the selected server).
+.TP
+.B \-\-v4\-only
+Show IPv4 leases only.
+.TP
+.B \-\-v6\-only
+Show IPv6 leases only.
+.TP
+.B \-\-all
+Show all leases, including expired and free.
+.TP
+.B \-\-state {active,free,expired,declined,released}
+Filter leases by binding state.
+.TP
+.B \-\-conflicts
+After listing, scan the parsed leases for conflicts (one MAC holding multiple
+active IPs, or one IP held by multiple active MACs) and print them. Exits
+non-zero (2) if any HIGH-severity conflict is found.
+.TP
+.B \-\-version
+Show the program version and exit.
+.SH DEFAULT LEASE FILES
+.TP
+.B ISC
+/var/lib/dhcp/dhcpd.leases and /var/lib/dhcp/dhcpd6.leases
+.TP
+.B Kea
+/var/lib/kea/kea-leases4.csv and /var/lib/kea/kea-leases6.csv
+.SH EXAMPLES
+.TP
+List active ISC leases (IPv4 and IPv6):
+.B dhcp-lease-list
+.TP
+Show every lease including expired/free:
+.B dhcp-lease-list \-\-all
+.TP
+Read Kea CSV databases:
+.B dhcp-lease-list \-\-server kea
+.TP
+Inspect specific lease files and only IPv4:
+.B dhcp-lease-list \-\-v4\-only \-\-v4\-lease /tmp/dhcpd.leases
+.TP
+Flag IP-theft-style conflicts:
+.B dhcp-lease-list \-\-conflicts
+.SH EXIT STATUS
+Returns 0 on success and non-zero on error (for example, an unreadable lease
+file).
+.SH SEE ALSO
+.BR dhcp-forensics (8),
+.BR dhcpd (8),
+.BR kea-dhcp4 (8)
+.SH AUTHOR
+labuser, as part of dhcp-oru-toolkit.

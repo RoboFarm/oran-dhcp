@@ -1,0 +1,39 @@
+dhcp-oru-toolkit (2.0.0) stable; urgency=medium
+
+  * Renamed package dhcp-lease-list -> dhcp-oru-toolkit.
+  * Refactored the single-file lease viewer into a pure-stdlib Python package
+    (dhcp_toolkit) installed under /usr/local/lib/dhcp-oru-toolkit.
+  * Ship TWO tools to /usr/local/sbin via thin python3 wrappers:
+      - dhcp-lease-list (ISC + Kea, IPv4 + IPv6) with a new --conflicts mode.
+      - dhcp-forensics: pcap/DHCP analyzer for the O-RU shared-xid defect.
+  * Packaging fixes:
+      - postinst/prerm now back up and restore the SAME path they install to
+        (/usr/local/sbin); the 1.x scripts backed up /usr/sbin while
+        installing to /usr/local/sbin.
+      - Dropped the questionable "Replaces: isc-dhcp-server" control field.
+      - postinst no longer clobbers its own wrapper when re-run.
+  * Bumped Depends to python3 (>= 3.8).
+
+ -- labuser <labuser@dhcp-server>  Tue, 02 Jun 2026 00:00:00 +0000
+
+dhcp-lease-list (1.3.0) stable; urgency=low
+
+  * Added Kea DHCP CSV lease file support (kea-leases4.csv, kea-leases6.csv)
+  * Added --server {isc,kea} switch to select DHCP server type
+  * Kea state codes mapped: 0=active, 1=declined, 2=expired, 3=released
+  * Kea journal-aware dedup: last active entry per IP address wins
+  * Added declined/released to --state filter options
+
+ -- labuser <labuser@dhcp-server>  Thu, 19 Mar 2026 00:00:00 +0000
+
+dhcp-lease-list (1.2.1) stable; urgency=low
+
+  * Fixed DUID-EN MAC extraction: 2-byte enterprise number handling
+
+ -- labuser <labuser@dhcp-server>  Wed, 04 Mar 2026 00:00:00 +0000
+
+dhcp-lease-list (1.0.0) stable; urgency=low
+
+  * Initial release
+
+ -- labuser <labuser@dhcp-server>  Mon, 02 Mar 2026 00:00:00 +0000

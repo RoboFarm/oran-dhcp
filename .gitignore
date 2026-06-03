@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Editor / OS
+.DS_Store
+*.swp
+
+# Claude Code session/runtime state
+.claude/
+
+# Analysis scratch area and original upload artifacts (preserved under reference/).
+# These must never be committed at the repo root.
+_scout/
+/ts_log_dhcp_ipv4_issue.tar.gz
+/dhcp-lease-list_1.3.0_all.deb
+/oru_dhcpv4_bug_report.docx
+/dhcp_lease_list_v1.3.0.py
+/dhcpd.conf
+/dhcpd6.conf

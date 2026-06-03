@@ -1,0 +1,5 @@
+address,hwaddr,client_id,valid_lifetime,expire,subnet_id,fqdn_fwd,fqdn_rev,hostname,state,user_context,pool_id
+192.168.36.171,34:fe:9e:3d:ad:c8,,3600,1500000000,1,0,0,oru-adc8,2,,0
+192.168.36.171,34:fe:9e:3d:ad:c8,,3600,4102444800,1,0,0,oru-adc8,0,,0
+192.168.36.180,,,3600,4102444800,1,0,0,,1,,0
+192.168.36.170,34:fe:9e:3d:ad:a8,,3600,4102444800,1,0,0,oru-ada8,0,,0
