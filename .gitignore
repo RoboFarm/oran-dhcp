@@ -27,3 +27,4 @@ _scout/
 /dhcp_lease_list_v1.3.0.py
 /dhcpd.conf
 /dhcpd6.conf
+reference/installation_err.txt

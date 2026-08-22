@@ -1,6 +1,14 @@
 dhcp-oru-toolkit (2.0.0) stable; urgency=medium
 
-  * Renamed package dhcp-lease-list -> dhcp-oru-toolkit.
+  * Renamed package dhcp-lease-list -> dhcp-oru-toolkit, with the proper
+    dpkg rename declarations so the new package cleanly supersedes the old one
+    instead of colliding on /usr/local/sbin/dhcp-lease-list:
+      Provides:  dhcp-lease-list (= 2.0.0)
+      Conflicts: dhcp-lease-list (<< 2.0.0)
+      Replaces:  dhcp-lease-list (<< 2.0.0)
+    Without these, "apt install ./dhcp-oru-toolkit_2.0.0_all.deb" failed with
+    "trying to overwrite '/usr/local/sbin/dhcp-lease-list', which is also in
+    package dhcp-lease-list 1.3.0" whenever the 1.x package was installed.
   * Refactored the single-file lease viewer into a pure-stdlib Python package
     (dhcp_toolkit) installed under /usr/local/lib/dhcp-oru-toolkit.
   * Ship TWO tools to /usr/local/sbin via thin python3 wrappers:

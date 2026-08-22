@@ -4,6 +4,9 @@ Section: net
 Priority: optional
 Architecture: all
 Depends: python3 (>= 3.8)
+Provides: dhcp-lease-list (= 2.0.0)
+Conflicts: dhcp-lease-list (<< 2.0.0)
+Replaces: dhcp-lease-list (<< 2.0.0)
 Maintainer: labuser <labuser@dhcp-server>
 Homepage: https://example.invalid/dhcp-oru-toolkit
 Description: DHCP lease viewer and O-RU shared-xid forensics toolkit

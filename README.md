@@ -64,8 +64,23 @@ PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli --help
 
 ```sh
 bash packaging/debian/build-deb.sh          # -> dist/dhcp-oru-toolkit_2.0.0_all.deb
-sudo dpkg -i dist/dhcp-oru-toolkit_2.0.0_all.deb
+sudo apt install ./dist/dhcp-oru-toolkit_2.0.0_all.deb
 ```
+
+Use `apt install ./<file>.deb` (not `dpkg -i`): apt resolves the `python3`
+dependency and applies the package-rename relationship below. Keep the `.deb`
+in a path readable by the `_apt` user (e.g. a world-readable dir) to avoid a
+cosmetic `pkgAcquire::Run (13: Permission denied)` warning.
+
+**Upgrading from the old `dhcp-lease-list` 1.x package:** v2.0.0 renames the
+package from `dhcp-lease-list` to `dhcp-oru-toolkit`. It declares
+`Provides`/`Conflicts`/`Replaces: dhcp-lease-list`, so `apt install` will
+automatically **remove the old `dhcp-lease-list` package** and take over
+`/usr/local/sbin/dhcp-lease-list` — expect a line like
+`The following packages will be REMOVED: dhcp-lease-list`. If you must use the
+lower-level `dpkg -i` instead, remove the old package first
+(`sudo dpkg -r dhcp-lease-list`), since `dpkg` will not auto-remove a
+conflicting package.
 
 The package installs the `dhcp_toolkit` Python package under
 `/usr/local/lib/dhcp-oru-toolkit` and two thin `python3` wrappers
