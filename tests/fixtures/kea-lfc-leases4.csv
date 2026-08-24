@@ -1,0 +1,2 @@
+address,hwaddr,client_id,valid_lifetime,expire,subnet_id,fqdn_fwd,fqdn_rev,hostname,state,user_context,pool_id
+192.168.36.192,34:fe:9e:3d:af:5c,,3600,4102444800,1,0,0,oru-af5c,0,,0

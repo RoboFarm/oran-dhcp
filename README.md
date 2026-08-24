@@ -4,8 +4,9 @@ Zero-dependency (pure Python standard library) tooling for operating and
 troubleshooting DHCP on **Fujitsu O-RAN radio units (O-RUs)**. It bundles two
 command-line tools:
 
-- **`dhcp-lease-list`** — a unified ISC/Kea DHCP lease viewer (IPv4 + IPv6) with
-  a `--conflicts` mode that flags the lease-table symptoms of the O-RU defect.
+- **`dhcp-lease-list`** — a unified ISC/Kea DHCP lease viewer (IPv4 + IPv6) that
+  detects which server is installed, with a `--conflicts` mode that flags the
+  lease-table symptoms of the O-RU defect.
 - **`dhcp-forensics`** — a pure-stdlib pcap/DHCP analyzer that decodes a capture
   and detects the O-RU DHCPv4 transaction-id (xid) reuse / IP-theft defect.
 
@@ -63,8 +64,8 @@ PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli --help
 ### From the Debian package
 
 ```sh
-bash packaging/debian/build-deb.sh          # -> dist/dhcp-oru-toolkit_2.0.0_all.deb
-sudo apt install ./dist/dhcp-oru-toolkit_2.0.0_all.deb
+bash packaging/debian/build-deb.sh          # -> dist/dhcp-oru-toolkit_2.1.2_all.deb
+sudo apt install ./dist/dhcp-oru-toolkit_2.1.2_all.deb
 ```
 
 Use `apt install ./<file>.deb` (not `dpkg -i`): apt resolves the `python3`
@@ -94,7 +95,7 @@ installed in section 8: `man 8 dhcp-lease-list`, `man 8 dhcp-forensics`.
 ```
 $ dhcp-lease-list --all --v4-lease tests/fixtures/dhcpd.leases --v6-lease tests/fixtures/dhcpd6.leases
 
-=== ISC DHCP Unified Lease List  v2.0.0 ===
+=== ISC DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -117,9 +118,43 @@ $ dhcp-lease-list --conflicts --v4-lease tests/fixtures/dhcpd.leases --v6-lease 
   [HIGH] mac_multiple_active_ips: MAC 34:fe:9e:3d:ad:c8 holds 2 distinct active IPv4 addresses: 192.168.36.171, 192.168.36.172
 ```
 
-Other useful flags: `--server {isc,kea}`, `--v4-only`, `--v6-only`,
-`--state {active,free,expired,declined,released}`, `--version`. See
-`man 8 dhcp-lease-list`.
+Other useful flags: `--server {auto,isc,kea,both}`, `--v4-only`, `--v6-only`,
+`--state {active,free,expired,declined,released}`, `--kea-config-dir`,
+`--version`. See `man 8 dhcp-lease-list`.
+
+#### ISC and Kea
+
+`--server` defaults to `auto`, so a bare `dhcp-lease-list` works on an ISC host,
+a Kea host, or one running both (each gets its own section). A lease file named
+with `--v4-lease`/`--v6-lease` has its format sniffed, so it does not need
+`--server` alongside it. Force one server with `--server isc` or `--server kea`.
+
+For Kea the lease files are located from the `name` entry of the
+`lease-database` block in `/etc/kea/kea-dhcp4.conf` / `kea-dhcp6.conf` rather
+than assumed, and Kea's config dialect (`//`, `#` and `/* */` comments,
+`<?include?>` directives) is handled; point `--kea-config-dir` elsewhere if the
+config lives outside `/etc/kea`. A `mysql`/`postgresql` lease backend, or a
+`memfile` with `"persist": false`, has no lease file to read and is reported as
+such instead of showing an empty table.
+
+Kea's memfile is a journal, and it is replayed the way Kea itself does: the last
+row for an address wins and `valid_lifetime = 0` deletes it, so released and
+reclaimed addresses are not shown as still held. The generations left by Lease
+File Cleanup (`.1`, `.2`, `.completed`) are read alongside the primary file — on
+a busy server most leases can be sitting in them, and permanently so if a cleanup
+was interrupted. Where Kea leaves the `hwaddr` column empty the MAC is recovered
+from the DHCPv6 DUID (DUID-LLT, DUID-LL, and the O-RAN ASCII DUID-EN) or the
+DHCPv4 option 61 client-id, so units stay identifiable by MAC on either server.
+
+```
+$ dhcp-lease-list --server kea --v4-lease /var/lib/kea/kea-leases4.csv --v4-only
+
+=== Kea DHCP Unified Lease List  v2.1.2 ===
+Active leases shown. Use --all to include expired/free.
+
+--- Kea DHCP ---
+[ DHCPv4 Leases ]  file: /var/lib/kea/kea-leases4.csv  total: 4  active: 3
+```
 
 ### `dhcp-forensics` — analyze a capture for the defect
 
@@ -180,7 +215,7 @@ end-to-end demo with `make demo`.
 - [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md) — the full operator user manual
   (install, both command references, supported formats, tutorials, FAQ). This is
   the source for the bundled Word version,
-  `docs/DHCP_Toolkit_v2.0.0_User_Manual.docx`.
+  `docs/DHCP_Toolkit_v2.1.2_User_Manual.docx`.
 - [`docs/oru_dhcpv4_xid_bug_report.md`](docs/oru_dhcpv4_xid_bug_report.md) —
   the full bug report (unit/MAC table, both transaction sequences, standards
   violations, recommended fixes).
@@ -195,7 +230,7 @@ converter (`tools/md_to_docx.py`) — no pandoc, LibreOffice, or `python-docx`
 required:
 
 ```sh
-make manual         # renders docs/DHCP_Toolkit_v2.0.0_User_Manual.docx
+make manual         # renders docs/DHCP_Toolkit_v2.1.2_User_Manual.docx
 ```
 
 Edit the Markdown and re-run `make manual` to refresh the Word document.

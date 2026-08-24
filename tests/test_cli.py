@@ -108,9 +108,54 @@ def test_leases_cli_v4_only_prints_leases():
 
 
 def test_leases_cli_version():
+    from dhcp_toolkit import __version__
     code, out = _run("dhcp_toolkit.leases.cli", "--version")
     assert code == 0
-    assert "2.0.0" in out or "2." in out
+    assert __version__ in out, out
+
+
+def test_leases_cli_autodetects_kea_from_the_lease_file():
+    # No --server flag: the CSV format identifies Kea on its own.
+    ensure_fixtures()
+    lease = fixture_path("kea-leases4.csv")
+    code, out = _run(
+        "dhcp_toolkit.leases.cli",
+        "--v4-lease", lease, "--v4-only", "--all",
+    )
+    assert code == 0, out
+    assert "Kea" in out, out
+    assert "192.168.36.170" in out, out
+
+
+def test_leases_cli_server_kea_still_works():
+    ensure_fixtures()
+    code, out = _run(
+        "dhcp_toolkit.leases.cli", "--server", "kea",
+        "--v4-lease", fixture_path("kea-leases4.csv"),
+        "--v6-lease", fixture_path("kea-leases6.csv"), "--all",
+    )
+    assert code == 0, out
+    # The v6 unit whose hwaddr column is empty is still identified by MAC.
+    assert "34:fe:9e:3d:ad:c8" in out, out
+
+
+def test_leases_cli_server_both_prints_a_section_per_server():
+    ensure_fixtures()
+    code, out = _run("dhcp_toolkit.leases.cli", "--server", "both", "--v4-only")
+    assert code == 0, out
+    assert "--- ISC DHCP ---" in out, out
+    assert "--- Kea DHCP ---" in out, out
+
+
+def test_leases_cli_reports_a_non_memfile_kea_backend():
+    # A MySQL lease backend has no CSV to read; the user gets told why the
+    # table is empty instead of being left guessing.
+    ensure_fixtures()
+    kea_etc = os.path.dirname(fixture_path("kea-dhcp4.conf"))
+    code, out = _run("dhcp_toolkit.leases.cli", "--server", "kea",
+                     "--kea-config-dir", kea_etc, "--v6-only")
+    assert code == 0, out
+    assert "mysql" in out, out
 
 
 def test_leases_cli_conflicts_exits_2_on_broken():

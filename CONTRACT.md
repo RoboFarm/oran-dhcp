@@ -8,10 +8,11 @@ must match the function signatures below exactly.
 ## PACKAGE LAYOUT (src layout)
 
 ```
-src/dhcp_toolkit/__init__.py            (version "2.0.0", short docstring; NO eager submodule imports)
+src/dhcp_toolkit/__init__.py            (version "2.1.2", short docstring; NO eager submodule imports)
 src/dhcp_toolkit/leases/__init__.py
 src/dhcp_toolkit/leases/models.py       (dataclasses: Lease, Conflict)            [scaffold owns]
 src/dhcp_toolkit/leases/parsers.py      [leases agent]
+src/dhcp_toolkit/leases/kea_config.py   [leases agent]   (Kea config discovery)
 src/dhcp_toolkit/leases/display.py      [leases agent]
 src/dhcp_toolkit/leases/conflicts.py    [leases agent]
 src/dhcp_toolkit/leases/cli.py          [leases agent]   -> entrypoint main(argv=None)->int
@@ -100,6 +101,16 @@ class Finding:
 leases.parsers: parse_isc_v4(path)->list[Lease]; parse_isc_v6(path)->list[Lease];
                 parse_kea_v4(path)->list[Lease]; parse_kea_v6(path)->list[Lease];
                 extract_mac_from_duid(duid_raw:str)->str   (preserve ALL original bugfix logic, changelog 1.0->1.3)
+                mac_from_duid_bytes(duid:bytes)->str       (byte-level core shared by the ISC and Kea decoders)
+                mac_from_kea_duid(duid_text:str)->str; mac_from_kea_client_id(client_id_text:str)->str
+                hex_to_bytes(text:str)->bytes; kea_unescape(value:str)->str
+                epoch_to_datetime(epoch_str)->str          (UTC; ISC lease files are UTC too)
+                kea_lease_files(path)->list[str]           (primary + LFC .completed/.2/.1, oldest first)
+leases.kea_config: discover_lease_source(family:str, config_dirs=None)->KeaLeaseSource;
+                find_config(family:str, config_dirs=None)->Optional[str];
+                read_kea_config(path)->Optional[dict]; strip_json_comments(text)->str;
+                expand_includes(text, base_dir, depth=0)->str
+                KeaLeaseSource(family, backend, path, persist, config_path, note) with .readable
 leases.display: is_expired(s)->bool; state_color(state,expires)->str; print_leases(leases, show_expired=False, filter_state=None, use_color=True)->None
 leases.conflicts: find_conflicts(leases:list[Lease])->list[Conflict]
 forensics.pcap: read_pcap(path)->list[CapturedPacket]   (classic pcap LE/BE, microsecond+nanosecond magic; minimal pcapng; EN10MB linktype 1; strip 802.1Q + QinQ; IPv4/IPv6/UDP; tolerate truncation -> skip bad records, never crash)
@@ -108,12 +119,15 @@ forensics.transactions: build_transactions(packets:list[CapturedPacket])->list[T
 forensics.detectors: run_all(transactions, packets)->list[Finding]; individual: detect_shared_xid, detect_foreign_offer_reaction, detect_missing_client_id, detect_chaddr_ethsrc_mismatch, detect_duplicate_grants
 forensics.report: summarize_capture(packets)->dict (ethertype/protocol histogram, dhcp v4/v6 counts); build_report(findings, transactions, capture_summary, meta)->dict; render_text(report, use_color=True)->str
 forensics.cli: main(argv=None)->int   usage: dhcp-forensics PCAP [--json] [--leases FILE] [--config FILE] [--no-color]; exit 0 if no HIGH findings else 2
-leases.cli: main(argv=None)->int  preserve original argparse (--server, --v4-lease, --v6-lease, --all, --state, --v4-only, --v6-only, --version) and ADD --conflicts (run find_conflicts and print)
+leases.cli: main(argv=None)->int  preserve original argparse (--server, --v4-lease, --v6-lease, --all, --state, --v4-only, --v6-only, --version) and ADD --conflicts (run find_conflicts and print) and --kea-config-dir
+            --server gained the choices auto (DEFAULT) and both; isc/kea still force one server
+            helpers: sniff_server(path)->'kea'|'isc'|None; detect_servers(args, config_dirs)->list[str];
+                     kea_lease_path(family, explicit, config_dirs)->(path, note)
 ```
 
 ## pyproject.toml
 
-name `dhcp-oru-toolkit`, version `2.0.0`, src layout, `requires-python>=3.8`,
+name `dhcp-oru-toolkit`, version `2.1.2`, src layout, `requires-python>=3.8`,
 no runtime deps, `[project.scripts]` `dhcp-lease-list = dhcp_toolkit.leases.cli:main`
 and `dhcp-forensics = dhcp_toolkit.forensics.cli:main`, optional
 `[project.optional-dependencies] test = ["pytest"]`.

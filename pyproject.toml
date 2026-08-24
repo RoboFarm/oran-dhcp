@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dhcp-oru-toolkit"
-version = "2.0.0"
+version = "2.1.2"
 description = "Zero-dependency DHCP lease viewer and pcap/DHCP forensics for the Fujitsu O-RU shared-xid defect"
 readme = "README.md"
 requires-python = ">=3.8"
