@@ -3,7 +3,7 @@
 #
 # Run from the repository root:
 #     bash packaging/debian/build-deb.sh
-# Produces: dist/dhcp-oru-toolkit_2.1.1_all.deb
+# Produces: dist/dhcp-oru-toolkit_2.1.2_all.deb
 #
 # Pure dpkg-deb build; no debhelper required. Installs the dhcp_toolkit Python
 # package under /usr/local/lib/dhcp-oru-toolkit and ships two thin python3
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 PKG="dhcp-oru-toolkit"
-VERSION="2.1.1"
+VERSION="2.1.2"
 ARCH="all"
 
 # --- Resolve paths (repo root = two levels up from this script) -------------

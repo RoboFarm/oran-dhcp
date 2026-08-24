@@ -8,7 +8,7 @@ must match the function signatures below exactly.
 ## PACKAGE LAYOUT (src layout)
 
 ```
-src/dhcp_toolkit/__init__.py            (version "2.1.1", short docstring; NO eager submodule imports)
+src/dhcp_toolkit/__init__.py            (version "2.1.2", short docstring; NO eager submodule imports)
 src/dhcp_toolkit/leases/__init__.py
 src/dhcp_toolkit/leases/models.py       (dataclasses: Lease, Conflict)            [scaffold owns]
 src/dhcp_toolkit/leases/parsers.py      [leases agent]
@@ -127,7 +127,7 @@ leases.cli: main(argv=None)->int  preserve original argparse (--server, --v4-lea
 
 ## pyproject.toml
 
-name `dhcp-oru-toolkit`, version `2.1.1`, src layout, `requires-python>=3.8`,
+name `dhcp-oru-toolkit`, version `2.1.2`, src layout, `requires-python>=3.8`,
 no runtime deps, `[project.scripts]` `dhcp-lease-list = dhcp_toolkit.leases.cli:main`
 and `dhcp-forensics = dhcp_toolkit.forensics.cli:main`, optional
 `[project.optional-dependencies] test = ["pytest"]`.

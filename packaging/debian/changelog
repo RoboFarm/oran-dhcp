@@ -1,3 +1,16 @@
+dhcp-oru-toolkit (2.1.2) stable; urgency=low
+
+  * Document reading lease files without sudo: why chmod on a Kea lease file
+    does not survive (LFC renames a new file over the old one, replacing the
+    inode), and the durable alternatives -- adding the account to the _kea
+    group, an ACL with a default entry, or a NOPASSWD sudoers rule for the
+    one command.  Added as a FILE PERMISSIONS section to dhcp-lease-list(8)
+    and a "Reading Lease Files Without sudo" section to the user manual.
+  * Fix the Makefile still naming the 2.1.0 user manual, which left the
+    shipped .docx stale after a version bump.
+
+ -- labuser <labuser@dhcp-server>  Mon, 24 Aug 2026 18:10:00 +0000
+
 dhcp-oru-toolkit (2.1.1) stable; urgency=medium
 
   * Fix Kea lease files that exist but are not readable being reported as

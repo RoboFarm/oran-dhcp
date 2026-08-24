@@ -1,4 +1,4 @@
-.TH DHCP-LEASE-LIST 8 "2026-08-24" "dhcp-oru-toolkit 2.1.1" "System Administration"
+.TH DHCP-LEASE-LIST 8 "2026-08-24" "dhcp-oru-toolkit 2.1.2" "System Administration"
 .SH NAME
 dhcp-lease-list \- display ISC or Kea DHCP IPv4 and IPv6 leases
 .SH SYNOPSIS
@@ -105,6 +105,52 @@ with the
 /
 .B lease6-get-all
 commands, or query the database directly.
+.SH FILE PERMISSIONS
+Lease databases are not world-readable. A stock Ubuntu Kea install ships
+.I /var/lib/kea
+and the lease files inside it owned by the
+.B _kea
+user, and
+.I /etc/kea
+likewise, so an unprivileged run reads nothing. ISC's
+.I /var/lib/dhcp/dhcpd.leases
+is conventionally world-readable, so this chiefly affects Kea.
+.PP
+Either run under
+.BR sudo (8),
+or grant the account read access.
+.PP
+Do
+.B not
+chmod the Kea lease files. LFC does not edit them in place: it writes a new
+file and renames it over the old one, so the replacement carries Kea's own
+default permissions and a manual mode change is lost at the next cleanup.
+Grant access durably instead, by adding the account to the
+.B _kea
+group \(em the lease files are already group-readable, and so are the files
+LFC creates:
+.PP
+.RS 4
+.B usermod -aG _kea \fIuser\fR
+.RE
+.PP
+Group membership takes effect at the account's next login. If
+.I /var/lib/kea
+itself is not group-searchable, grant that once with
+.BR "chmod g+rx /var/lib/kea" :
+directory permissions, unlike the files inside, are not touched by LFC.
+.PP
+For per-user access without group membership, use an ACL with a default entry
+so that lease files created later inherit it:
+.PP
+.RS 4
+.B setfacl -m u:\fIuser\fB:rx /var/lib/kea
+.br
+.B setfacl -d -m u:\fIuser\fB:r /var/lib/kea
+.RE
+.PP
+A lease file that exists but cannot be read is reported as a permission error
+naming the directory, not as a missing file.
 .SH LEASE STATE
 Kea's memfile is a journal: each lease update appends a row, the last row for
 an address is authoritative, and a row with a

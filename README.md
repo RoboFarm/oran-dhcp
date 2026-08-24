@@ -64,8 +64,8 @@ PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli --help
 ### From the Debian package
 
 ```sh
-bash packaging/debian/build-deb.sh          # -> dist/dhcp-oru-toolkit_2.1.1_all.deb
-sudo apt install ./dist/dhcp-oru-toolkit_2.1.1_all.deb
+bash packaging/debian/build-deb.sh          # -> dist/dhcp-oru-toolkit_2.1.2_all.deb
+sudo apt install ./dist/dhcp-oru-toolkit_2.1.2_all.deb
 ```
 
 Use `apt install ./<file>.deb` (not `dpkg -i`): apt resolves the `python3`
@@ -95,7 +95,7 @@ installed in section 8: `man 8 dhcp-lease-list`, `man 8 dhcp-forensics`.
 ```
 $ dhcp-lease-list --all --v4-lease tests/fixtures/dhcpd.leases --v6-lease tests/fixtures/dhcpd6.leases
 
-=== ISC DHCP Unified Lease List  v2.1.1 ===
+=== ISC DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -149,7 +149,7 @@ DHCPv4 option 61 client-id, so units stay identifiable by MAC on either server.
 ```
 $ dhcp-lease-list --server kea --v4-lease /var/lib/kea/kea-leases4.csv --v4-only
 
-=== Kea DHCP Unified Lease List  v2.1.1 ===
+=== Kea DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 --- Kea DHCP ---
@@ -215,7 +215,7 @@ end-to-end demo with `make demo`.
 - [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md) — the full operator user manual
   (install, both command references, supported formats, tutorials, FAQ). This is
   the source for the bundled Word version,
-  `docs/DHCP_Toolkit_v2.1.1_User_Manual.docx`.
+  `docs/DHCP_Toolkit_v2.1.2_User_Manual.docx`.
 - [`docs/oru_dhcpv4_xid_bug_report.md`](docs/oru_dhcpv4_xid_bug_report.md) —
   the full bug report (unit/MAC table, both transaction sequences, standards
   violations, recommended fixes).
@@ -230,7 +230,7 @@ converter (`tools/md_to_docx.py`) — no pandoc, LibreOffice, or `python-docx`
 required:
 
 ```sh
-make manual         # renders docs/DHCP_Toolkit_v2.1.1_User_Manual.docx
+make manual         # renders docs/DHCP_Toolkit_v2.1.2_User_Manual.docx
 ```
 
 Edit the Markdown and re-run `make manual` to refresh the Word document.

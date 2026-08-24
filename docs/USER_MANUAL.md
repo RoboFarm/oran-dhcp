@@ -1,6 +1,6 @@
 # DHCP O-RU Toolkit - User Manual
 
-**Version 2.1.1**
+**Version 2.1.2**
 
 **Published 2026-06-03**
 
@@ -23,7 +23,7 @@ A pair of zero-dependency, pure standard-library command-line tools for inspecti
 
 # Introduction and Overview
 
-The **DHCP O-RU Toolkit** version 2.1.1 is a pair of command-line tools for operating and troubleshooting DHCP on Fujitsu O-RAN radio units (O-RUs). This chapter explains what the toolkit is, the problem it solves, the two commands it installs, who should use it, and what has changed since the previous release.
+The **DHCP O-RU Toolkit** version 2.1.2 is a pair of command-line tools for operating and troubleshooting DHCP on Fujitsu O-RAN radio units (O-RUs). This chapter explains what the toolkit is, the problem it solves, the two commands it installs, who should use it, and what has changed since the previous release.
 
 ## What the Toolkit Is
 
@@ -66,14 +66,14 @@ You can verify which version you are running with the `--version` flag:
 
 ```
 $ dhcp-lease-list --version
-dhcp-lease-list 2.1.1
+dhcp-lease-list 2.1.2
 ```
 
-The package itself also reports `2.1.1` through `dhcp_toolkit.__version__`, and the forensics report header reads `DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)`.
+The package itself also reports `2.1.2` through `dhcp_toolkit.__version__`, and the forensics report header reads `DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)`.
 
-## What's New in v2.1.1
+## What's New in v2.1.2
 
-Version 2.1.1 makes Kea DHCP a first-class server in `dhcp-lease-list` rather than a hardcoded pair of CSV paths. Kea had been nominally supported since v1.3.0, but on a real Kea host the viewer routinely showed nothing, showed stale state, or showed leases it could not tie to a unit.
+Version 2.1.2 makes Kea DHCP a first-class server in `dhcp-lease-list` rather than a hardcoded pair of CSV paths. Kea had been nominally supported since v1.3.0, but on a real Kea host the viewer routinely showed nothing, showed stale state, or showed leases it could not tie to a unit.
 
 - **The server is detected.** `--server` now defaults to `auto`, so a bare `dhcp-lease-list` works on a Kea-only host; a lease file named on the command line has its format sniffed; and `--server both` reports an ISC and a Kea section side by side.
 - **Kea lease files are located from the Kea config,** through the `lease-database` block of `kea-dhcp4.conf` / `kea-dhcp6.conf`, instead of being assumed. Kea's comment and `<?include?>` extensions to JSON are handled, and `--kea-config-dir` points at a non-standard location. A MySQL or PostgreSQL lease backend, or a non-persistent `memfile`, is reported as such instead of yielding a silently empty table.
@@ -171,7 +171,7 @@ Keep two facts in mind as you read on. First, the toolkit reports only what is i
 
 # Installation and Upgrade
 
-This chapter explains how to install, verify, upgrade, and remove the DHCP O-RU Toolkit, version 2.1.1. The toolkit ships two command-line tools, `dhcp-lease-list` and `dhcp-forensics`, both implemented in pure Python. Choose the Debian package for production servers, or a source install for development and ad-hoc use. Every command, path, and output shown below is taken directly from the version 2.1.1 sources and from running the tools.
+This chapter explains how to install, verify, upgrade, and remove the DHCP O-RU Toolkit, version 2.1.2. The toolkit ships two command-line tools, `dhcp-lease-list` and `dhcp-forensics`, both implemented in pure Python. Choose the Debian package for production servers, or a source install for development and ad-hoc use. Every command, path, and output shown below is taken directly from the version 2.1.2 sources and from running the tools.
 
 ## Requirements
 
@@ -191,21 +191,21 @@ This is the recommended method for a DHCP server. The package details, taken fro
 | Field | Value |
 | --- | --- |
 | Package | `dhcp-oru-toolkit` |
-| Version | `2.1.1` |
+| Version | `2.1.2` |
 | Architecture | `all` |
 | Section | `net` |
 | Priority | `optional` |
 | Depends | `python3 (>= 3.8)` |
 | Maintainer | `labuser <labuser@dhcp-server>` |
 
-The built artifact is named `dhcp-oru-toolkit_2.1.1_all.deb` and is produced into the `dist/` directory.
+The built artifact is named `dhcp-oru-toolkit_2.1.2_all.deb` and is produced into the `dist/` directory.
 
 ### Install the Package
 
 From the directory that contains the `.deb` file (for example the repository's `dist/`), run the following.
 
 ```
-sudo dpkg -i dist/dhcp-oru-toolkit_2.1.1_all.deb
+sudo dpkg -i dist/dhcp-oru-toolkit_2.1.2_all.deb
 ```
 
 If `dpkg` reports unmet dependencies (only `python3` could ever be missing), resolve them with the following.
@@ -217,7 +217,7 @@ sudo apt-get install -f
 On a successful configure step, the `postinst` script prints a short confirmation.
 
 ```
-dhcp-oru-toolkit 2.1.1 installed.
+dhcp-oru-toolkit 2.1.2 installed.
   dhcp-lease-list -> /usr/local/sbin/dhcp-lease-list
   dhcp-forensics  -> /usr/local/sbin/dhcp-forensics
 ```
@@ -294,7 +294,7 @@ bash packaging/debian/build-deb.sh
 The script stages the tree under `build/deb/`, copies the `dhcp_toolkit` package (stripping any `__pycache__` directories and `.pyc`/`.pyo` files), writes the two `sh` wrappers, installs the `control`, `postinst`, and `prerm` files, gzips the changelog and both man pages, sets ownership to `root` via `--root-owner-group`, and finally builds the archive. The result is written to the following path and the script prints both `dpkg-deb --info` and `dpkg-deb --contents` for the archive.
 
 ```
-dist/dhcp-oru-toolkit_2.1.1_all.deb
+dist/dhcp-oru-toolkit_2.1.2_all.deb
 ```
 
 The script requires a checkout that contains `src/dhcp_toolkit`; it exits with an error if that directory is missing.
@@ -309,7 +309,7 @@ The `dhcp-lease-list` command supports `--version` and prints the program name a
 
 ```
 $ dhcp-lease-list --version
-dhcp-lease-list 2.1.1
+dhcp-lease-list 2.1.2
 ```
 
 Its help text confirms the available options.
@@ -322,7 +322,7 @@ usage: dhcp-lease-list [-h] [--version] [--server {auto,isc,kea,both}]
                        [--state {active,free,expired,declined,released}]
                        [--v4-only] [--v6-only] [--conflicts]
 
-Unified DHCP lease viewer for ISC and Kea DHCP v2.1.1
+Unified DHCP lease viewer for ISC and Kea DHCP v2.1.2
 ```
 
 ### Check the Forensics Analyzer
@@ -342,7 +342,7 @@ When you run it against a capture, the report banner reflects the version.
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)
 ==============================================================================
 ```
 
@@ -376,10 +376,10 @@ Because the package name changed, the new package does not automatically replace
 
 ```
 sudo dpkg -r dhcp-lease-list
-sudo dpkg -i dist/dhcp-oru-toolkit_2.1.1_all.deb
+sudo dpkg -i dist/dhcp-oru-toolkit_2.1.2_all.deb
 ```
 
-After upgrading, re-run the verification steps above to confirm that `dhcp-lease-list --version` reports `2.1.1` and that `dhcp-forensics --help` succeeds.
+After upgrading, re-run the verification steps above to confirm that `dhcp-lease-list --version` reports `2.1.2` and that `dhcp-forensics --help` succeeds.
 
 ## Uninstalling
 
@@ -413,7 +413,7 @@ A source-tree run started with `PYTHONPATH=src` installs nothing, so there is no
 
 # Command Reference: dhcp-lease-list
 
-The `dhcp-lease-list` command is the unified lease viewer in the DHCP O-RU Toolkit version 2.1.1. It reads lease files from either an ISC DHCP server or a Kea DHCP server, normalizes IPv4 and IPv6 leases into a single tabular view, and can optionally scan the parsed leases for the MAC/IP conflicts that are the lease-table fingerprint of the O-RU shared-transaction-ID defect.
+The `dhcp-lease-list` command is the unified lease viewer in the DHCP O-RU Toolkit version 2.1.2. It reads lease files from either an ISC DHCP server or a Kea DHCP server, normalizes IPv4 and IPv6 leases into a single tabular view, and can optionally scan the parsed leases for the MAC/IP conflicts that are the lease-table fingerprint of the O-RU shared-transaction-ID defect.
 
 This chapter is the complete reference for the command. Every flag documented here is taken directly from the command's argument parser, and every example shows output captured from a real run against the toolkit's bundled fixtures.
 
@@ -438,7 +438,7 @@ The following table lists every flag accepted by `dhcp-lease-list`. The `Argumen
 | Flag | Argument | Default | Description |
 | --- | --- | --- | --- |
 | `-h`, `--help` | none | n/a | Show the usage message and exit. |
-| `--version` | none | n/a | Print the program name and version (`dhcp-lease-list 2.1.1`) and exit. |
+| `--version` | none | n/a | Print the program name and version (`dhcp-lease-list 2.1.2`) and exit. |
 | `--server` | `auto`, `isc`, `kea`, or `both` | `auto` | Select the DHCP server type. `auto` detects what is installed, `both` reports each server in its own section, and `isc`/`kea` force a single server. This choice also picks the lease-file paths and the parser used. |
 | `--v4-lease` | path | resolved from `--server` | Path to the IPv4 lease file. When omitted, the path for the selected server is used. |
 | `--v6-lease` | path | resolved from `--server` | Path to the IPv6 lease file. When omitted, the path for the selected server is used. |
@@ -497,6 +497,85 @@ Kea keeps leases differently enough from ISC that a few of its behaviours are wo
 Nothing is parsed for that family, and no `[WARN] lease file not found` is printed for a file that was never meant to exist.
 
 **Timestamps.** Kea records lease expiry as a Unix epoch; it is rendered in UTC, matching the ISC lease files and the `Expires (UTC)` column heading. Expiry is evaluated against UTC as well, so the same lease is judged the same way on a server in any time zone.
+
+## Reading Lease Files Without sudo
+
+Lease databases are not world-readable, so the first unprivileged run on a Kea
+host usually lists nothing. On a stock Ubuntu install `/var/lib/kea`, the lease
+files inside it and `/etc/kea` are all owned by the `_kea` user and closed to
+everyone else. ISC's `/var/lib/dhcp/dhcpd.leases` is conventionally
+world-readable, which is why this chiefly bites on Kea.
+
+Running under `sudo` always works:
+
+```
+sudo dhcp-lease-list
+```
+
+**Do not chmod the Kea lease files to make them readable.** The change will not
+survive. Kea's LFC does not edit a lease file in place: it writes a new file
+and renames it over the old one, which replaces the inode, so the new file
+carries Kea's own default permissions and your mode change is gone at the next
+cleanup. The same happens across a Kea restart.
+
+**Grant access durably by adding the account to the `_kea` group instead.** The
+lease files are already group-readable (`-rw-r----- _kea _kea`), and so are the
+files LFC creates later, so group membership keeps working:
+
+```
+sudo usermod -aG _kea labuser
+```
+
+Group membership only takes effect at the account's next login, so log out and
+back in - or use `newgrp _kea` for the current shell - and then verify:
+
+```
+id                       # _kea should be listed
+ls -ld /var/lib/kea      # the group needs r-x on the directory
+dhcp-lease-list          # no sudo
+```
+
+If `/var/lib/kea` is not group-searchable, grant that once:
+
+```
+sudo chmod g+rx /var/lib/kea
+```
+
+Directory permissions, unlike the files inside, are not touched by LFC, so that
+change does persist.
+
+For per-user access without group membership, an ACL with a default entry lets
+lease files created later inherit it:
+
+```
+sudo setfacl -m u:labuser:rx /var/lib/kea
+sudo setfacl -d -m u:labuser:r /var/lib/kea
+```
+
+Or leave every permission alone and allow just this one command through sudo
+without a password - reasonable for a tool that only ever reads:
+
+```
+echo 'labuser ALL=(root) NOPASSWD: /usr/local/sbin/dhcp-lease-list' \
+    | sudo tee /etc/sudoers.d/dhcp-lease-list
+sudo chmod 0440 /etc/sudoers.d/dhcp-lease-list
+```
+
+Joining the group is the usual answer: it is standard practice and needs no
+per-file maintenance.
+
+A last note on diagnosis. A lease file that exists but cannot be read is
+reported as a permission error naming the directory, and never as a missing
+file:
+
+```
+--- Kea DHCP ---
+[ERROR] Permission denied reading the Kea DHCPv4 lease files in /var/lib/kea -- re-run with sudo
+```
+
+Releases before 2.1.2 reported that case as `[WARN] ... lease file not found`,
+which pointed at a missing file rather than a missing `sudo`. If you see the
+older wording, you are on an older build.
 
 ## Output Format
 
@@ -563,7 +642,7 @@ dhcp-lease-list --server isc \
 Captured output:
 
 ```
-=== ISC DHCP Unified Lease List  v2.1.1 ===
+=== ISC DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -596,7 +675,7 @@ dhcp-lease-list --server kea \
 Captured output:
 
 ```
-=== Kea DHCP Unified Lease List  v2.1.1 ===
+=== Kea DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 --- Kea DHCP ---
@@ -693,7 +772,7 @@ For deeper packet-level investigation of the O-RU shared transaction-ID and IP-t
 
 The analyzer is pure Python standard library. It does not capture traffic itself and it does not need root; you point it at a file that already exists on disk. Captures may be classic `pcap` or minimal `pcapng`. The tool is deliberately defensive: a structurally invalid packet is skipped rather than crashing the run, and a capture that contains no DHCPv4 traffic produces an honest "nothing to see here" verdict instead of a false alarm.
 
-This chapter is the complete reference for the command in toolkit version 2.1.1. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`; this chapter covers only the latter.
+This chapter is the complete reference for the command in toolkit version 2.1.2. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`; this chapter covers only the latter.
 
 ## Synopsis
 
@@ -835,7 +914,7 @@ The capture holds 14 DHCPv4 frames on VLAN 201, grouped into two transactions. I
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)
 ==============================================================================
 Source pcap : tests/fixtures/oru_xid_reuse.pcap
 Verdict     : AFFECTED
@@ -909,7 +988,7 @@ dhcp-forensics samples/oru_real_capture.pcap --no-color
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)
 ==============================================================================
 Source pcap : samples/oru_real_capture.pcap
 Note        : capture contains no DHCPv4 traffic; DHCPv4 defect cannot be observed in this file
@@ -958,7 +1037,7 @@ The file is mostly PTP (ethertype `0x88f7`) with a single DHCPv6 RENEW. Because 
 
 # Supported Input Formats
 
-This chapter is a reference for every input file the DHCP O-RU Toolkit version 2.1.1 can read. It covers the lease files consumed by `dhcp-lease-list`, the packet captures consumed by `dhcp-forensics`, the DHCP message formats decoded inside those captures, and the rules used to extract a MAC address from a DHCPv6 DUID. Each section also states clearly what is **not** supported, so you can tell in advance whether a given file will parse.
+This chapter is a reference for every input file the DHCP O-RU Toolkit version 2.1.2 can read. It covers the lease files consumed by `dhcp-lease-list`, the packet captures consumed by `dhcp-forensics`, the DHCP message formats decoded inside those captures, and the rules used to extract a MAC address from a DHCPv6 DUID. Each section also states clearly what is **not** supported, so you can tell in advance whether a given file will parse.
 
 The two commands map to two distinct input domains:
 
@@ -1216,7 +1295,7 @@ Because this fixture is the shared-xid incident, the command reports a verdict o
 
 # Tutorials and Operational Workflows
 
-This chapter contains end-to-end procedures for the **DHCP O-RU Toolkit** version 2.1.1. Each workflow is a numbered procedure with the exact commands to run and the result you should expect. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`, both pure Python standard library with no third-party dependencies.
+This chapter contains end-to-end procedures for the **DHCP O-RU Toolkit** version 2.1.2. Each workflow is a numbered procedure with the exact commands to run and the result you should expect. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`, both pure Python standard library with no third-party dependencies.
 
 The examples assume you are running from a source checkout at the repository root and have not installed the package. In that mode, prefix each invocation with `PYTHONPATH=src` and call the module, for example `PYTHONPATH=src python3 -m dhcp_toolkit.leases.cli`. If you installed the Debian package or ran `pip install -e .`, the commands are available directly on your `PATH` as `dhcp-lease-list` and `dhcp-forensics`, and you can drop the `PYTHONPATH=src python3 -m ...` wrapper. Every workflow below shows the source-tree form so the commands are copy-pasteable in a fresh checkout.
 
@@ -1241,7 +1320,7 @@ PYTHONPATH=src python3 -m dhcp_toolkit.leases.cli --conflicts \
 1. Read the listing first, then the conflict section. The tool prints the active leases per address family, then a labelled `[ Lease Conflicts ]` block. With the fixture data the output is:
 
 ```
-=== ISC DHCP Unified Lease List  v2.1.1 ===
+=== ISC DHCP Unified Lease List  v2.1.2 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -1287,7 +1366,7 @@ PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli \
 1. Read the report top-down. It opens with the source pcap and a one-word verdict, then a capture summary (frame and message counts, ethertypes, VLANs), then per-transaction packet timelines, then the findings grouped by severity, then a standards-violations table, and finally a `VERDICT` line with severity counts. The affected fixture produces:
 
 ```
-DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)
 Source pcap : tests/fixtures/oru_xid_reuse.pcap
 Verdict     : AFFECTED
 
@@ -1494,7 +1573,7 @@ Writing deterministic fixtures to .../tests/fixtures
   ...
 Done: 6 fixtures.
 PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli tests/fixtures/oru_xid_reuse.pcap || true
-DHCP-ORU FORENSIC REPORT  (toolkit v2.1.1)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.2)
 Verdict     : AFFECTED
 ```
 
@@ -1522,7 +1601,7 @@ After running the demo, you have seen each tool produce a real verdict against r
 
 # Troubleshooting, FAQ, and Appendices
 
-This chapter helps you resolve the situations operators most commonly hit while running the two tools in the **DHCP O-RU Toolkit** version 2.1.1: `dhcp-lease-list` and `dhcp-forensics`. Part A walks through symptoms and fixes. Part B answers frequent questions. Part C provides reference tables for exit codes, terminology, and the standards the tools cite. Every behavior described here is grounded in the shipped code; the tools are read-only and never modify lease files, captures, or server state.
+This chapter helps you resolve the situations operators most commonly hit while running the two tools in the **DHCP O-RU Toolkit** version 2.1.2: `dhcp-lease-list` and `dhcp-forensics`. Part A walks through symptoms and fixes. Part B answers frequent questions. Part C provides reference tables for exit codes, terminology, and the standards the tools cite. Every behavior described here is grounded in the shipped code; the tools are read-only and never modify lease files, captures, or server state.
 
 ## Part A: Troubleshooting
 
@@ -1531,7 +1610,7 @@ This chapter helps you resolve the situations operators most commonly hit while 
 If your shell reports `dhcp-lease-list: command not found` or `dhcp-forensics: command not found` immediately after installing the Debian package, the wrapper directory is not on your `PATH`. The package installs the `dhcp_toolkit` Python library under `/usr/local/lib/dhcp-oru-toolkit` and places both commands as thin wrappers in `/usr/local/sbin`.
 
 - `/usr/local/sbin` is typically on `root`'s `PATH` but may be absent from an unprivileged user's `PATH`. Run the command with `sudo`, or add `/usr/local/sbin` to your `PATH`.
-- Invoke the tool by its absolute path to confirm it is installed, for example `/usr/local/sbin/dhcp-lease-list --version`. A correct install prints `dhcp-lease-list 2.1.1`.
+- Invoke the tool by its absolute path to confirm it is installed, for example `/usr/local/sbin/dhcp-lease-list --version`. A correct install prints `dhcp-lease-list 2.1.2`.
 - The package depends only on `python3 (>= 3.8)`. If `python3` is missing, the wrappers cannot run. Install Python 3.8 or newer.
 
 If you are running from a source tree rather than the installed package, invoke the entry points directly, for example `PYTHONPATH=src python3 -c "from dhcp_toolkit.leases.cli import main; main()" --version`.
