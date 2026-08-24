@@ -1,6 +1,6 @@
 # DHCP O-RU Toolkit - User Manual
 
-**Version 2.0.0**
+**Version 2.1.0**
 
 **Published 2026-06-03**
 
@@ -23,7 +23,7 @@ A pair of zero-dependency, pure standard-library command-line tools for inspecti
 
 # Introduction and Overview
 
-The **DHCP O-RU Toolkit** version 2.0.0 is a pair of command-line tools for operating and troubleshooting DHCP on Fujitsu O-RAN radio units (O-RUs). This chapter explains what the toolkit is, the problem it solves, the two commands it installs, who should use it, and what has changed since the previous release.
+The **DHCP O-RU Toolkit** version 2.1.0 is a pair of command-line tools for operating and troubleshooting DHCP on Fujitsu O-RAN radio units (O-RUs). This chapter explains what the toolkit is, the problem it solves, the two commands it installs, who should use it, and what has changed since the previous release.
 
 ## What the Toolkit Is
 
@@ -66,14 +66,27 @@ You can verify which version you are running with the `--version` flag:
 
 ```
 $ dhcp-lease-list --version
-dhcp-lease-list 2.0.0
+dhcp-lease-list 2.1.0
 ```
 
-The package itself also reports `2.0.0` through `dhcp_toolkit.__version__`, and the forensics report header reads `DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)`.
+The package itself also reports `2.1.0` through `dhcp_toolkit.__version__`, and the forensics report header reads `DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)`.
+
+## What's New in v2.1.0
+
+Version 2.1.0 makes Kea DHCP a first-class server in `dhcp-lease-list` rather than a hardcoded pair of CSV paths. Kea had been nominally supported since v1.3.0, but on a real Kea host the viewer routinely showed nothing, showed stale state, or showed leases it could not tie to a unit.
+
+- **The server is detected.** `--server` now defaults to `auto`, so a bare `dhcp-lease-list` works on a Kea-only host; a lease file named on the command line has its format sniffed; and `--server both` reports an ISC and a Kea section side by side.
+- **Kea lease files are located from the Kea config,** through the `lease-database` block of `kea-dhcp4.conf` / `kea-dhcp6.conf`, instead of being assumed. Kea's comment and `<?include?>` extensions to JSON are handled, and `--kea-config-dir` points at a non-standard location. A MySQL or PostgreSQL lease backend, or a non-persistent `memfile`, is reported as such instead of yielding a silently empty table.
+- **Lease File Cleanup generations are read.** While Kea's LFC is running - or permanently, if it was interrupted - most leases live in the `.1`, `.2` and `.completed` files rather than the primary one. They are now read alongside it, in Kea's own load order.
+- **Kea's journal is replayed the way Kea replays it:** the last row for an address wins, and `valid_lifetime = 0` deletes it. Released, declined and reclaimed addresses are no longer displayed as still held.
+- **MAC addresses are recovered** from the DHCPv6 DUID and the DHCPv4 option 61 client-identifier when Kea left the `hwaddr` column empty, so O-RUs are identifiable on either server.
+- **Lease expiry is evaluated in UTC.** Kea epochs were being converted with the server's local clock under a column heading that says UTC, and expiry was compared against a local `now`. On a server east of UTC that hid still-valid leases from the default listing; west of it, expired leases lingered. This affected ISC leases as much as Kea ones.
+
+The command-line interface is otherwise unchanged: every flag accepted by v2.0.0 still works, and `--server isc` still behaves exactly as before.
 
 ## What's New Since v1.3.0
 
-Version 2.0.0 is a major step up from the v1.3.0 lease viewer.
+Version 2.0.0 was a major step up from the v1.3.0 lease viewer.
 
 - **The lease viewer was modularized.** The previously monolithic lease tool was reorganized into focused modules for parsing, display, and conflict detection, while preserving all of the original parsing behavior and command-line flags (`--server`, `--v4-lease`, `--v6-lease`, `--all`, `--state`, `--v4-only`, `--v6-only`, `--version`).
 - **Conflict detection was added.** A new `--conflicts` flag scans the parsed leases for the IP-theft signature and reports each conflict with a severity. When a HIGH conflict is found, `dhcp-lease-list` exits with status `2`.
@@ -158,7 +171,7 @@ Keep two facts in mind as you read on. First, the toolkit reports only what is i
 
 # Installation and Upgrade
 
-This chapter explains how to install, verify, upgrade, and remove the DHCP O-RU Toolkit, version 2.0.0. The toolkit ships two command-line tools, `dhcp-lease-list` and `dhcp-forensics`, both implemented in pure Python. Choose the Debian package for production servers, or a source install for development and ad-hoc use. Every command, path, and output shown below is taken directly from the version 2.0.0 sources and from running the tools.
+This chapter explains how to install, verify, upgrade, and remove the DHCP O-RU Toolkit, version 2.1.0. The toolkit ships two command-line tools, `dhcp-lease-list` and `dhcp-forensics`, both implemented in pure Python. Choose the Debian package for production servers, or a source install for development and ad-hoc use. Every command, path, and output shown below is taken directly from the version 2.1.0 sources and from running the tools.
 
 ## Requirements
 
@@ -178,21 +191,21 @@ This is the recommended method for a DHCP server. The package details, taken fro
 | Field | Value |
 | --- | --- |
 | Package | `dhcp-oru-toolkit` |
-| Version | `2.0.0` |
+| Version | `2.1.0` |
 | Architecture | `all` |
 | Section | `net` |
 | Priority | `optional` |
 | Depends | `python3 (>= 3.8)` |
 | Maintainer | `labuser <labuser@dhcp-server>` |
 
-The built artifact is named `dhcp-oru-toolkit_2.0.0_all.deb` and is produced into the `dist/` directory.
+The built artifact is named `dhcp-oru-toolkit_2.1.0_all.deb` and is produced into the `dist/` directory.
 
 ### Install the Package
 
 From the directory that contains the `.deb` file (for example the repository's `dist/`), run the following.
 
 ```
-sudo dpkg -i dist/dhcp-oru-toolkit_2.0.0_all.deb
+sudo dpkg -i dist/dhcp-oru-toolkit_2.1.0_all.deb
 ```
 
 If `dpkg` reports unmet dependencies (only `python3` could ever be missing), resolve them with the following.
@@ -204,7 +217,7 @@ sudo apt-get install -f
 On a successful configure step, the `postinst` script prints a short confirmation.
 
 ```
-dhcp-oru-toolkit 2.0.0 installed.
+dhcp-oru-toolkit 2.1.0 installed.
   dhcp-lease-list -> /usr/local/sbin/dhcp-lease-list
   dhcp-forensics  -> /usr/local/sbin/dhcp-forensics
 ```
@@ -281,7 +294,7 @@ bash packaging/debian/build-deb.sh
 The script stages the tree under `build/deb/`, copies the `dhcp_toolkit` package (stripping any `__pycache__` directories and `.pyc`/`.pyo` files), writes the two `sh` wrappers, installs the `control`, `postinst`, and `prerm` files, gzips the changelog and both man pages, sets ownership to `root` via `--root-owner-group`, and finally builds the archive. The result is written to the following path and the script prints both `dpkg-deb --info` and `dpkg-deb --contents` for the archive.
 
 ```
-dist/dhcp-oru-toolkit_2.0.0_all.deb
+dist/dhcp-oru-toolkit_2.1.0_all.deb
 ```
 
 The script requires a checkout that contains `src/dhcp_toolkit`; it exits with an error if that directory is missing.
@@ -296,19 +309,20 @@ The `dhcp-lease-list` command supports `--version` and prints the program name a
 
 ```
 $ dhcp-lease-list --version
-dhcp-lease-list 2.0.0
+dhcp-lease-list 2.1.0
 ```
 
 Its help text confirms the available options.
 
 ```
 $ dhcp-lease-list --help
-usage: dhcp-lease-list [-h] [--version] [--server {isc,kea}]
-                       [--v4-lease V4_LEASE] [--v6-lease V6_LEASE] [--all]
+usage: dhcp-lease-list [-h] [--version] [--server {auto,isc,kea,both}]
+                       [--v4-lease V4_LEASE] [--v6-lease V6_LEASE]
+                       [--kea-config-dir KEA_CONFIG_DIR] [--all]
                        [--state {active,free,expired,declined,released}]
                        [--v4-only] [--v6-only] [--conflicts]
 
-Unified DHCP lease viewer for ISC and Kea DHCP v2.0.0
+Unified DHCP lease viewer for ISC and Kea DHCP v2.1.0
 ```
 
 ### Check the Forensics Analyzer
@@ -328,7 +342,7 @@ When you run it against a capture, the report banner reflects the version.
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)
 ==============================================================================
 ```
 
@@ -362,10 +376,10 @@ Because the package name changed, the new package does not automatically replace
 
 ```
 sudo dpkg -r dhcp-lease-list
-sudo dpkg -i dist/dhcp-oru-toolkit_2.0.0_all.deb
+sudo dpkg -i dist/dhcp-oru-toolkit_2.1.0_all.deb
 ```
 
-After upgrading, re-run the verification steps above to confirm that `dhcp-lease-list --version` reports `2.0.0` and that `dhcp-forensics --help` succeeds.
+After upgrading, re-run the verification steps above to confirm that `dhcp-lease-list --version` reports `2.1.0` and that `dhcp-forensics --help` succeeds.
 
 ## Uninstalling
 
@@ -399,7 +413,7 @@ A source-tree run started with `PYTHONPATH=src` installs nothing, so there is no
 
 # Command Reference: dhcp-lease-list
 
-The `dhcp-lease-list` command is the unified lease viewer in the DHCP O-RU Toolkit version 2.0.0. It reads lease files from either an ISC DHCP server or a Kea DHCP server, normalizes IPv4 and IPv6 leases into a single tabular view, and can optionally scan the parsed leases for the MAC/IP conflicts that are the lease-table fingerprint of the O-RU shared-transaction-ID defect.
+The `dhcp-lease-list` command is the unified lease viewer in the DHCP O-RU Toolkit version 2.1.0. It reads lease files from either an ISC DHCP server or a Kea DHCP server, normalizes IPv4 and IPv6 leases into a single tabular view, and can optionally scan the parsed leases for the MAC/IP conflicts that are the lease-table fingerprint of the O-RU shared-transaction-ID defect.
 
 This chapter is the complete reference for the command. Every flag documented here is taken directly from the command's argument parser, and every example shows output captured from a real run against the toolkit's bundled fixtures.
 
@@ -408,8 +422,9 @@ This chapter is the complete reference for the command. Every flag documented he
 The package is invoked through its source tree. If the toolkit is installed as a console script, the program name is `dhcp-lease-list`; the underlying entry point is `dhcp_toolkit.leases.cli:main`.
 
 ```
-dhcp-lease-list [-h] [--version] [--server {isc,kea}]
-                [--v4-lease V4_LEASE] [--v6-lease V6_LEASE] [--all]
+dhcp-lease-list [-h] [--version] [--server {auto,isc,kea,both}]
+                [--v4-lease V4_LEASE] [--v6-lease V6_LEASE]
+                [--kea-config-dir KEA_CONFIG_DIR] [--all]
                 [--state {active,free,expired,declined,released}]
                 [--v4-only] [--v6-only] [--conflicts]
 ```
@@ -423,10 +438,11 @@ The following table lists every flag accepted by `dhcp-lease-list`. The `Argumen
 | Flag | Argument | Default | Description |
 | --- | --- | --- | --- |
 | `-h`, `--help` | none | n/a | Show the usage message and exit. |
-| `--version` | none | n/a | Print the program name and version (`dhcp-lease-list 2.0.0`) and exit. |
-| `--server` | `isc` or `kea` | `isc` | Select the DHCP server type. This choice also picks the default lease-file paths and the parser used. |
-| `--v4-lease` | path | auto-selected by `--server` | Path to the IPv4 lease file. When omitted, the default path for the selected server is used. |
-| `--v6-lease` | path | auto-selected by `--server` | Path to the IPv6 lease file. When omitted, the default path for the selected server is used. |
+| `--version` | none | n/a | Print the program name and version (`dhcp-lease-list 2.1.0`) and exit. |
+| `--server` | `auto`, `isc`, `kea`, or `both` | `auto` | Select the DHCP server type. `auto` detects what is installed, `both` reports each server in its own section, and `isc`/`kea` force a single server. This choice also picks the lease-file paths and the parser used. |
+| `--v4-lease` | path | resolved from `--server` | Path to the IPv4 lease file. When omitted, the path for the selected server is used. |
+| `--v6-lease` | path | resolved from `--server` | Path to the IPv6 lease file. When omitted, the path for the selected server is used. |
+| `--kea-config-dir` | path | `/etc/kea`, then `/usr/local/etc/kea` | Directory holding `kea-dhcp4.conf` and `kea-dhcp6.conf`. Use it when the Kea config lives outside the standard locations. |
 | `--all` | none (switch) | off | Show all leases, including expired active leases and free leases. Without this flag, active leases whose expiry is in the past are hidden. |
 | `--state` | one of `active`, `free`, `expired`, `declined`, `released` | unset (no state filter) | Restrict the listing to a single binding state. |
 | `--v4-only` | none (switch) | off | Show IPv4 leases only; skip the IPv6 file entirely. |
@@ -437,16 +453,50 @@ A note on `--v4-only` and `--v6-only`: these flags are independent switches, not
 
 ## Default Lease-File Locations
 
-When you omit `--v4-lease` or `--v6-lease`, the command fills in a default path based on `--server`. The defaults are the standard on-disk locations for each server.
+When you omit `--v4-lease` or `--v6-lease`, the command works out the path itself.
 
-| Server (`--server`) | IPv4 default (`--v4-lease`) | IPv6 default (`--v6-lease`) |
+| Server (`--server`) | IPv4 lease file | IPv6 lease file |
 | --- | --- | --- |
-| `isc` (default) | `/var/lib/dhcp/dhcpd.leases` | `/var/lib/dhcp/dhcpd6.leases` |
-| `kea` | `/var/lib/kea/kea-leases4.csv` | `/var/lib/kea/kea-leases6.csv` |
+| `isc` | `/var/lib/dhcp/dhcpd.leases` | `/var/lib/dhcp/dhcpd6.leases` |
+| `kea` | from the Kea config (see below) | from the Kea config (see below) |
 
-The `--server` value also determines which parser is applied. ISC files are parsed as text `lease`/`ia-na` blocks; Kea files are parsed as CSV. If you point `--v4-lease` at a Kea CSV while `--server` is `isc`, the ISC parser is used and the file will not parse correctly. Always match `--server` to the file format.
+For ISC these are fixed conventional locations. For Kea the path is **read from the server's own configuration** - the `name` entry of the `lease-database` block in `kea-dhcp4.conf` / `kea-dhcp6.conf` - because that path is site-configurable and frequently is not the compiled-in default. Kea's configuration is JSON with extensions, and the toolkit handles the whole dialect: `//`, `#` and `/* */` comments and `<?include "file"?>` directives are pre-processed before parsing. If no config can be found or parsed, the command falls back to Kea's own defaults, `/var/lib/kea/kea-leases4.csv` and `/var/lib/kea/kea-leases6.csv`, and says so.
+
+The `--server` value also determines which parser is applied. ISC files are parsed as text `lease`/`ia-na` blocks; Kea files are parsed as CSV. You do **not** have to match `--server` to the file format by hand: under the default `--server auto`, a file you name with `--v4-lease`/`--v6-lease` has its format sniffed and the matching parser chosen. Forcing the wrong pairing explicitly (`--server isc` against a Kea CSV) still misparses, as before.
 
 If a lease file does not exist, the command prints a yellow `[WARN]` line and treats that family as having zero leases rather than aborting. If a file exists but cannot be read, it prints a red `[ERROR] Permission denied` line (suggesting `sudo`) and likewise continues with zero leases for that family.
+
+## Choosing the Server
+
+`--server` defaults to `auto`, so a bare `dhcp-lease-list` produces a useful listing on an ISC host, a Kea host, or a host running both. Detection works in this order:
+
+1. If `--v4-lease` or `--v6-lease` names a file, that file's format is sniffed - a Kea CSV header row, or ISC `lease` / `ia-na` blocks - and the matching parser is selected.
+1. Otherwise ISC is reported when its lease files are present, and Kea is reported when a Kea config or lease file is present. A host running both DHCP servers gets a section for each, headed `--- ISC DHCP ---` and `--- Kea DHCP ---`.
+1. If neither server is found, ISC is assumed, which reproduces the behaviour of earlier releases on a host with nothing installed.
+
+Pass `--server isc` or `--server kea` to force one server, or `--server both` to report both regardless of what detection would have concluded.
+
+## Reading Kea Lease Databases
+
+Kea keeps leases differently enough from ISC that a few of its behaviours are worth knowing when you read a listing.
+
+**Lease File Cleanup generations.** Kea's LFC does not rewrite the lease file in place. It moves the current file aside and consolidates the old generations through `<name>.1`, `<name>.2` and `<name>.completed`. While a cleanup is in flight - or indefinitely, if LFC was interrupted by a crash or a power cut - most of the leases live in those files and the primary file holds only what has been written since. The command reads them alongside the primary file, in the same order Kea itself reloads them, and prints a `[NOTE]` line naming each generation it included. Reading only the primary file, as earlier releases did, could report a fraction of a healthy server's leases, or none at all.
+
+**Journal semantics.** The Kea lease file is a journal: every lease update appends a row. It is replayed the way Kea replays it, so the **last** row for an address is authoritative and a row whose `valid_lifetime` is `0` marks the lease deleted and removes the address from the listing. Released, declined and reclaimed addresses are therefore reported in their true state rather than being displayed as still held.
+
+**MAC addresses.** Kea fills the `hwaddr` column only when it could derive a link-layer address from the exchange, and leaves it empty otherwise - for a relayed exchange, for instance. Where it is empty the MAC is recovered from the DHCPv6 DUID (DUID-LLT, DUID-LL, and the O-RAN ASCII DUID-EN), exactly as the ISC DHCPv6 parser does, and for DHCPv4 from the option 61 client-identifier in either its RFC 2132 or RFC 4361 form. O-RUs stay identifiable by MAC on either server.
+
+**Non-file lease backends.** Kea can store leases in MySQL or PostgreSQL instead of a `memfile`, and a `memfile` can be configured with `"persist": false` so that leases are never written to disk at all. In those cases there is no lease file to read. The command reports the backend it found and why the listing is empty, for example:
+
+```
+--- Kea DHCP ---
+[NOTE] Kea DHCPv6 uses the 'mysql' lease backend, not memfile; there is no CSV lease file to read (query the database, or use kea-shell with the lease6-get-all command)
+[ DHCPv6 Leases ]  no lease file to read
+```
+
+Nothing is parsed for that family, and no `[WARN] lease file not found` is printed for a file that was never meant to exist.
+
+**Timestamps.** Kea records lease expiry as a Unix epoch; it is rendered in UTC, matching the ISC lease files and the `Expires (UTC)` column heading. Expiry is evaluated against UTC as well, so the same lease is judged the same way on a server in any time zone.
 
 ## Output Format
 
@@ -459,11 +509,11 @@ For each address family that is shown, the command prints a section header follo
 The lease table has six columns, in this order:
 
 - **IP Address** - the leased IPv4 or IPv6 address.
-- **MAC / DUID** - the client hardware address. For ISC DHCPv6 this is the MAC extracted from the client DUID; a dash (`-`) appears when no MAC could be determined.
+- **MAC / DUID** - the client hardware address. For DHCPv6 on either server this is the MAC extracted from the client DUID whenever the server did not record a hardware address of its own; for Kea DHCPv4 it falls back to the option 61 client-identifier. A dash (`-`) appears when no MAC could be determined.
 - **Hostname** - the client hostname, or `-` if none was recorded. ISC DHCPv6 leases always show `-` in this column.
 - **State** - the binding state: `active`, `free`, `expired`, `declined`, or `released`.
 - **Expires (UTC)** - the lease expiry as `YYYY/MM/DD HH:MM:SS`, or `-` if unknown. For Kea sources, the stored Unix epoch is converted to this format.
-- **Vendor Class** - the vendor-class identifier for ISC DHCPv4 leases (often the O-RU model string), or `-` when not present. Kea and IPv6 leases show `-`.
+- **Vendor Class** - the vendor-class identifier for ISC DHCPv4 leases (often the O-RU model string), or `-` when not present. Kea does not record the vendor class in its lease file by default; where a deployment stores it in the lease's user context it is shown here, and otherwise Kea and IPv6 leases show `-`.
 
 Column widths are sized to the content of the rows being printed, and rows are sorted by IP address. On an interactive terminal, the table is rendered with ANSI color (active leases in green, free/released dimmed, other states yellow). When output is captured to a file or pipe, you may wish to strip the escape sequences for clean text; the examples below show the de-colored equivalent.
 
@@ -513,7 +563,7 @@ dhcp-lease-list --server isc \
 Captured output:
 
 ```
-=== ISC DHCP Unified Lease List  v2.0.0 ===
+=== ISC DHCP Unified Lease List  v2.1.0 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -546,15 +596,41 @@ dhcp-lease-list --server kea \
 Captured output:
 
 ```
-=== Kea DHCP Unified Lease List  v2.0.0 ===
+=== Kea DHCP Unified Lease List  v2.1.0 ===
 Active leases shown. Use --all to include expired/free.
 
-[ DHCPv4 Leases ]  file: tests/fixtures/kea-leases4.csv  total: 3  active: 2
-IP Address       MAC / DUID Hostname State      Expires (UTC)          Vendor Class
-192.168.36.180   -          -        declined   2100/01/01 00:00:00    -
+--- Kea DHCP ---
+[ DHCPv4 Leases ]  file: tests/fixtures/kea-leases4.csv  total: 6  active: 4
+IP Address       MAC / DUID Hostname State        Expires (UTC)          Vendor Class
+-------------------------------------------------------------------------------------
+192.168.36.180   -   -   declined     2100/01/01 00:00:00    -
 ```
 
-The command exits with code 0. The header still reports the full totals (3 parsed, 2 active) for the file, while the table is narrowed to the single `declined` lease by the `--state` filter. The MAC column shows `-` because the declined Kea entry carries no hardware address.
+The command exits with code 0. The header still reports the full totals (6 parsed, 4 active) for the file, while the table is narrowed to the single `declined` lease by the `--state` filter. The MAC column shows `-` because the declined Kea entry carries neither a hardware address nor a client-identifier to recover one from.
+
+Dropping `--state` and `--v4-only` and adding `--all` shows what the fixture exercises: an address that was bound and then released, one deleted with `valid_lifetime = 0` (absent from the listing entirely), a lease whose MAC came from its client-identifier, one whose vendor class came from its user context, and three IPv6 leases whose MACs were recovered from a DUID because Kea left the `hwaddr` column empty.
+
+```
+--- Kea DHCP ---
+[ DHCPv4 Leases ]  file: tests/fixtures/kea-leases4.csv  total: 6  active: 4
+IP Address       MAC / DUID          Hostname   State        Expires (UTC)          Vendor Class
+------------------------------------------------------------------------------------------------
+192.168.36.170   34:fe:9e:3d:ad:a8   oru-ada8   active       2100/01/01 00:00:00    -
+192.168.36.171   34:fe:9e:3d:ad:c8   oru-adc8   active       2100/01/01 00:00:00    -
+192.168.36.173   34:fe:9e:3d:af:5c   oru-af5c   released     2100/01/01 00:00:00    -
+192.168.36.175   34:fe:9e:3d:ad:22   oru-ad22   active       2100/01/01 00:00:00    -
+192.168.36.176   34:fe:9e:3d:ad:33   oru-ad33   active       2100/01/01 00:00:00    o-ran-ru2/FJ/44R26-N25N66-DC/A2256600222
+192.168.36.180   -                   -          declined     2100/01/01 00:00:00    -
+
+[ DHCPv6 Leases ]  file: tests/fixtures/kea-leases6.csv  total: 5  active: 4
+IP Address     MAC / DUID          Hostname   State        Expires (UTC)          Vendor Class
+----------------------------------------------------------------------------------------------
+fd00:36::171   34:fe:9e:3d:ad:a8   oru-ada8   active       2100/01/01 00:00:00    -
+fd00:36::173   34:fe:9e:3d:ad:c8   oru-adc8   active       2100/01/01 00:00:00    -
+fd00:36::174   34:fe:9e:3d:ad:44   -          active       2100/01/01 00:00:00    -
+fd00:36::175   34:fe:9e:3d:ad:55   -          active       2100/01/01 00:00:00    -
+fd00:36::180   34:fe:9e:3d:af:5c   -          declined     2100/01/01 00:00:00    -
+```
 
 ### Example 3: Scan for Conflicts (Non-Zero Exit)
 
@@ -617,7 +693,7 @@ For deeper packet-level investigation of the O-RU shared transaction-ID and IP-t
 
 The analyzer is pure Python standard library. It does not capture traffic itself and it does not need root; you point it at a file that already exists on disk. Captures may be classic `pcap` or minimal `pcapng`. The tool is deliberately defensive: a structurally invalid packet is skipped rather than crashing the run, and a capture that contains no DHCPv4 traffic produces an honest "nothing to see here" verdict instead of a false alarm.
 
-This chapter is the complete reference for the command in toolkit version 2.0.0. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`; this chapter covers only the latter.
+This chapter is the complete reference for the command in toolkit version 2.1.0. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`; this chapter covers only the latter.
 
 ## Synopsis
 
@@ -759,7 +835,7 @@ The capture holds 14 DHCPv4 frames on VLAN 201, grouped into two transactions. I
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)
 ==============================================================================
 Source pcap : tests/fixtures/oru_xid_reuse.pcap
 Verdict     : AFFECTED
@@ -833,7 +909,7 @@ dhcp-forensics samples/oru_real_capture.pcap --no-color
 
 ```
 ==============================================================================
-DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)
 ==============================================================================
 Source pcap : samples/oru_real_capture.pcap
 Note        : capture contains no DHCPv4 traffic; DHCPv4 defect cannot be observed in this file
@@ -882,7 +958,7 @@ The file is mostly PTP (ethertype `0x88f7`) with a single DHCPv6 RENEW. Because 
 
 # Supported Input Formats
 
-This chapter is a reference for every input file the DHCP O-RU Toolkit version 2.0.0 can read. It covers the lease files consumed by `dhcp-lease-list`, the packet captures consumed by `dhcp-forensics`, the DHCP message formats decoded inside those captures, and the rules used to extract a MAC address from a DHCPv6 DUID. Each section also states clearly what is **not** supported, so you can tell in advance whether a given file will parse.
+This chapter is a reference for every input file the DHCP O-RU Toolkit version 2.1.0 can read. It covers the lease files consumed by `dhcp-lease-list`, the packet captures consumed by `dhcp-forensics`, the DHCP message formats decoded inside those captures, and the rules used to extract a MAC address from a DHCPv6 DUID. Each section also states clearly what is **not** supported, so you can tell in advance whether a given file will parse.
 
 The two commands map to two distinct input domains:
 
@@ -895,15 +971,20 @@ All parsers are pure standard-library Python with no third-party dependency (no 
 
 The `dhcp-lease-list` command reads two families of lease database, selected with `--server`:
 
-- `--server isc` (the default) reads ISC `dhcpd` text lease files.
-- `--server kea` reads Kea CSV lease files.
+- `--server isc` reads ISC `dhcpd` text lease files.
+- `--server kea` reads Kea `memfile` CSV lease files.
+- `--server auto` (the default) picks whichever is present, and `--server both` reads both.
 
-For either server type you may point at specific files with `--v4-lease` and `--v6-lease`. If you omit those flags, the tool falls back to the conventional on-disk locations for the selected server type.
+For either server type you may point at specific files with `--v4-lease` and `--v6-lease`; under `auto` the format of a file you name is detected from its contents, so the flag does not need `--server` alongside it. If you omit those flags, the tool resolves the paths itself.
 
-| Server | IPv4 default path | IPv6 default path |
+| Server | IPv4 lease file | IPv6 lease file |
 | --- | --- | --- |
 | isc | `/var/lib/dhcp/dhcpd.leases` | `/var/lib/dhcp/dhcpd6.leases` |
-| kea | `/var/lib/kea/kea-leases4.csv` | `/var/lib/kea/kea-leases6.csv` |
+| kea | `lease-database.name` from `kea-dhcp4.conf` | `lease-database.name` from `kea-dhcp6.conf` |
+
+The Kea paths come from the server's own config (searched in `/etc/kea` and then `/usr/local/etc/kea`, or wherever `--kea-config-dir` points), falling back to `/var/lib/kea/kea-leases4.csv` and `/var/lib/kea/kea-leases6.csv`. Kea's config is JSON extended with `//`, `#` and `/* */` comments and `<?include "file"?>` directives; all of these are pre-processed before the JSON is parsed. A `mysql` or `postgresql` lease backend, or a `memfile` with `"persist": false`, has no lease file to read, and the command reports that rather than showing an empty table.
+
+Alongside the primary Kea lease file, the toolkit reads the generations left by Lease File Cleanup - `<name>.completed`, or else `<name>.2` and `<name>.1` - in the order Kea itself reloads them, so leases are still listed while a cleanup is in flight or after one was interrupted.
 
 A missing lease file is not fatal. The parser prints a yellow `[WARN]` line and returns zero leases, so a host that runs only DHCPv4 still produces a clean DHCPv4 listing. A file you lack permission to read prints a red `[ERROR]` line suggesting `sudo`, and likewise returns zero leases.
 
@@ -929,7 +1010,11 @@ The IPv6 ISC parser scans for `ia-na "<duid>" { ... }` blocks, each of which nes
 
 ### Kea CSV Lease Files (v4 and v6)
 
-Kea lease files are CSV with a header row. The toolkit reads them with a dictionary CSV reader, so columns are matched **by header name**, not by position; extra columns are ignored and column order does not matter as long as the expected names are present. Kea writes a new row on each update (journal style), so the same active-beats-inactive, later-expiry deduplication per address is applied here too.
+Kea lease files are CSV with a header row. The toolkit reads them with a dictionary CSV reader, so columns are matched **by header name**, not by position; extra columns from newer Kea releases are ignored, missing ones are tolerated, and column order does not matter.
+
+Kea writes a new row on each update, making the file a journal, and it is replayed with Kea's own semantics: rows are applied in order, the **last** row for an address wins, and a row whose `valid_lifetime` is `0` is Kea's delete marker and removes the address from the listing. (This differs from the ISC parsers, which keep whichever block is `active`. Applying that rule to Kea left released and reclaimed addresses on display as though they were still held, which is why the two now differ.)
+
+Where a value would break the CSV - most often a comma inside a `user_context` JSON blob - Kea escapes it as an XML-style hex entity such as `&#x2c;`. Those escapes are decoded on the way in.
 
 The Kea **state** column is a numeric code, mapped as follows. Any unrecognized code is shown verbatim as `state-<code>`.
 
@@ -947,7 +1032,9 @@ address, hwaddr, client_id, valid_lifetime, expire, subnet_id,
 fqdn_fwd, fqdn_rev, hostname, state, user_context, pool_id
 ```
 
-Of those it uses `address` (the IP), `hwaddr` (the MAC), `hostname`, `state`, `expire`, and `valid_lifetime`. An empty `address` row is skipped. An empty `hwaddr` or `hostname` is shown as `-`.
+Of those it uses `address` (the IP), `hwaddr` (the MAC), `client_id`, `hostname`, `state`, `expire`, `valid_lifetime`, and `user_context`. An empty `address` row is skipped. When `hwaddr` is empty the MAC is recovered from `client_id`, which carries it in one of two encodings: the RFC 2132 form (htype `0x01` followed by the six MAC bytes) or the RFC 4361 form (type `0xff` followed by a four-byte IAID and a DUID). A client-identifier that carries no link-layer address at all - an opaque string, say - leaves the column as `-`.
+
+`expire` is a Unix epoch and is rendered in UTC. The lease start time is derived as `expire - valid_lifetime`, which is the client-last-transaction time the ISC parsers put in the same field. A vendor class stored under a `vendor-class` key in `user_context`, at any nesting depth, is shown in the Vendor Class column.
 
 For the IPv6 file (`kea-leases6.csv`) the parser expects these columns:
 
@@ -957,7 +1044,9 @@ lease_type, iaid, prefix_len, fqdn_fwd, fqdn_rev, hostname,
 hwaddr, state, user_context, hwtype, hwaddr_source, pool_id
 ```
 
-Kea v6 stores the client hardware address directly in the `hwaddr` column, so no DUID decoding is needed for these files; the `duid` column is preserved as supplied. The `lease_type` column controls what is shown: type `0` is an IA_NA address lease and is listed; type `2` is a prefix delegation (IA_PD) and is **skipped**, because the listing shows leased addresses only.
+Kea v6 stores the client hardware address in the `hwaddr` column when it could derive one, and that value is used in preference to anything else. It is not always populated, though - it depends on Kea's `mac-sources` setting and on the exchange itself - and where it is empty the MAC is decoded from the `duid` column instead, using the same DUID rules described later in this chapter. Kea stores the bare DUID as colon-separated hex with no IAID prefix (the IAID is a column of its own), unlike ISC, which prepends four IAID bytes inside the `ia-na` key; both are handled. The `duid` column is preserved as supplied.
+
+The `lease_type` column controls what is shown: type `0` is an IA_NA address lease and is listed; type `2` is a prefix delegation (IA_PD) and is **skipped**, because the listing shows leased addresses only.
 
 In both Kea formats the `expire` column is a Unix epoch timestamp. The toolkit converts it to a `YYYY/MM/DD HH:MM:SS` string; a value it cannot parse becomes `-`.
 
@@ -1127,7 +1216,7 @@ Because this fixture is the shared-xid incident, the command reports a verdict o
 
 # Tutorials and Operational Workflows
 
-This chapter contains end-to-end procedures for the **DHCP O-RU Toolkit** version 2.0.0. Each workflow is a numbered procedure with the exact commands to run and the result you should expect. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`, both pure Python standard library with no third-party dependencies.
+This chapter contains end-to-end procedures for the **DHCP O-RU Toolkit** version 2.1.0. Each workflow is a numbered procedure with the exact commands to run and the result you should expect. The toolkit ships two commands, `dhcp-lease-list` and `dhcp-forensics`, both pure Python standard library with no third-party dependencies.
 
 The examples assume you are running from a source checkout at the repository root and have not installed the package. In that mode, prefix each invocation with `PYTHONPATH=src` and call the module, for example `PYTHONPATH=src python3 -m dhcp_toolkit.leases.cli`. If you installed the Debian package or ran `pip install -e .`, the commands are available directly on your `PATH` as `dhcp-lease-list` and `dhcp-forensics`, and you can drop the `PYTHONPATH=src python3 -m ...` wrapper. Every workflow below shows the source-tree form so the commands are copy-pasteable in a fresh checkout.
 
@@ -1152,7 +1241,7 @@ PYTHONPATH=src python3 -m dhcp_toolkit.leases.cli --conflicts \
 1. Read the listing first, then the conflict section. The tool prints the active leases per address family, then a labelled `[ Lease Conflicts ]` block. With the fixture data the output is:
 
 ```
-=== ISC DHCP Unified Lease List  v2.0.0 ===
+=== ISC DHCP Unified Lease List  v2.1.0 ===
 Active leases shown. Use --all to include expired/free.
 
 [ DHCPv4 Leases ]  file: tests/fixtures/dhcpd.leases  total: 4  active: 3
@@ -1198,7 +1287,7 @@ PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli \
 1. Read the report top-down. It opens with the source pcap and a one-word verdict, then a capture summary (frame and message counts, ethertypes, VLANs), then per-transaction packet timelines, then the findings grouped by severity, then a standards-violations table, and finally a `VERDICT` line with severity counts. The affected fixture produces:
 
 ```
-DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)
 Source pcap : tests/fixtures/oru_xid_reuse.pcap
 Verdict     : AFFECTED
 
@@ -1405,7 +1494,7 @@ Writing deterministic fixtures to .../tests/fixtures
   ...
 Done: 6 fixtures.
 PYTHONPATH=src python3 -m dhcp_toolkit.forensics.cli tests/fixtures/oru_xid_reuse.pcap || true
-DHCP-ORU FORENSIC REPORT  (toolkit v2.0.0)
+DHCP-ORU FORENSIC REPORT  (toolkit v2.1.0)
 Verdict     : AFFECTED
 ```
 
@@ -1433,7 +1522,7 @@ After running the demo, you have seen each tool produce a real verdict against r
 
 # Troubleshooting, FAQ, and Appendices
 
-This chapter helps you resolve the situations operators most commonly hit while running the two tools in the **DHCP O-RU Toolkit** version 2.0.0: `dhcp-lease-list` and `dhcp-forensics`. Part A walks through symptoms and fixes. Part B answers frequent questions. Part C provides reference tables for exit codes, terminology, and the standards the tools cite. Every behavior described here is grounded in the shipped code; the tools are read-only and never modify lease files, captures, or server state.
+This chapter helps you resolve the situations operators most commonly hit while running the two tools in the **DHCP O-RU Toolkit** version 2.1.0: `dhcp-lease-list` and `dhcp-forensics`. Part A walks through symptoms and fixes. Part B answers frequent questions. Part C provides reference tables for exit codes, terminology, and the standards the tools cite. Every behavior described here is grounded in the shipped code; the tools are read-only and never modify lease files, captures, or server state.
 
 ## Part A: Troubleshooting
 
@@ -1442,21 +1531,21 @@ This chapter helps you resolve the situations operators most commonly hit while 
 If your shell reports `dhcp-lease-list: command not found` or `dhcp-forensics: command not found` immediately after installing the Debian package, the wrapper directory is not on your `PATH`. The package installs the `dhcp_toolkit` Python library under `/usr/local/lib/dhcp-oru-toolkit` and places both commands as thin wrappers in `/usr/local/sbin`.
 
 - `/usr/local/sbin` is typically on `root`'s `PATH` but may be absent from an unprivileged user's `PATH`. Run the command with `sudo`, or add `/usr/local/sbin` to your `PATH`.
-- Invoke the tool by its absolute path to confirm it is installed, for example `/usr/local/sbin/dhcp-lease-list --version`. A correct install prints `dhcp-lease-list 2.0.0`.
+- Invoke the tool by its absolute path to confirm it is installed, for example `/usr/local/sbin/dhcp-lease-list --version`. A correct install prints `dhcp-lease-list 2.1.0`.
 - The package depends only on `python3 (>= 3.8)`. If `python3` is missing, the wrappers cannot run. Install Python 3.8 or newer.
 
 If you are running from a source tree rather than the installed package, invoke the entry points directly, for example `PYTHONPATH=src python3 -c "from dhcp_toolkit.leases.cli import main; main()" --version`.
 
 ### No Leases Shown, or the Wrong Lease Path
 
-`dhcp-lease-list` auto-selects default lease-file paths based on `--server`. When you do not pass `--v4-lease` or `--v6-lease`, the defaults are used.
+`dhcp-lease-list` resolves the lease-file paths itself when you do not pass `--v4-lease` or `--v6-lease`.
 
-| Server | Default IPv4 lease file | Default IPv6 lease file |
+| Server | IPv4 lease file | IPv6 lease file |
 | --- | --- | --- |
-| `isc` (default) | `/var/lib/dhcp/dhcpd.leases` | `/var/lib/dhcp/dhcpd6.leases` |
-| `kea` | `/var/lib/kea/kea-leases4.csv` | `/var/lib/kea/kea-leases6.csv` |
+| `isc` | `/var/lib/dhcp/dhcpd.leases` | `/var/lib/dhcp/dhcpd6.leases` |
+| `kea` | `lease-database.name` from `kea-dhcp4.conf` | `lease-database.name` from `kea-dhcp6.conf` |
 
-If a default path does not match your deployment, the parser cannot find the file and the tool prints a yellow warning, then reports zero leases for that family:
+If the resolved path does not match your deployment, the parser cannot find the file and the tool prints a yellow warning, then reports zero leases for that family:
 
 ```
 [WARN] DHCPv4 lease file not found: /var/lib/dhcp/dhcpd.leases
@@ -1465,10 +1554,26 @@ If a default path does not match your deployment, the parser cannot find the fil
 
 To fix this:
 
-- Pass the real path explicitly with `--v4-lease PATH` and `--v6-lease PATH`.
-- Select the correct backend. If you run Kea, pass `--server kea`; the default `isc` paths will not exist on a Kea host.
+- Pass the real path explicitly with `--v4-lease PATH` and `--v6-lease PATH`. Under the default `--server auto` the file's format is detected from its contents, so you do not also need `--server`.
+- Check which server was selected. The banner names it (`=== Kea DHCP Unified Lease List ===`) and each section is headed `--- ISC DHCP ---` or `--- Kea DHCP ---`. Force the choice with `--server isc`, `--server kea`, or `--server both`.
 - Remember that, by default, only **active** leases are shown. If a lease exists but is expired, free, declined, or released, it is hidden until you add `--all`. Use `--state` to filter to a single binding state (`active`, `free`, `expired`, `declined`, or `released`).
 - Use `--v4-only` or `--v6-only` if you intend to view just one family; without them, both families are listed.
+
+### Kea Shows Few Leases, or None, on a Server That Is Clearly Working
+
+Three Kea-specific causes account for most of this, and the tool now handles or reports all three. If you are on an older release, they are worth checking by hand.
+
+- **The lease file is not where you think.** `lease-database.name` in `/etc/kea/kea-dhcp4.conf` is site-configurable and often is not `/var/lib/kea/kea-leases4.csv`. Confirm with `grep -A5 lease-database /etc/kea/kea-dhcp4.conf`. Point `--kea-config-dir` at the config if it lives outside `/etc/kea`.
+- **Lease File Cleanup is in flight, or was interrupted.** Kea's LFC moves the lease file aside and consolidates through `<name>.1`, `<name>.2` and `<name>.completed`; the primary file then holds only what has been written since. Check with `ls -l /var/lib/kea/`. If those files are present, the leases in them are real - a `[NOTE]` line tells you which ones were included in the listing.
+- **The leases are not in a file at all.** A `mysql` or `postgresql` lease backend, or a `memfile` with `"persist": false`, has nothing on disk to read. The command reports the backend it found. Query the database directly, or use `kea-shell` with the `lease4-get-all` / `lease6-get-all` commands.
+
+If the count looks right but addresses you expect to be free are still shown as held, note that Kea's lease file is a journal and the **last** row for an address is the truth. A row with `valid_lifetime = 0` means the lease was deleted.
+
+### A Kea Lease Shows No MAC Address
+
+Kea fills the `hwaddr` column of its lease file only when it could derive a link-layer address from the exchange - it depends on Kea's `mac-sources` setting, and a relayed exchange may not supply one. The MAC is recovered from the DHCPv6 DUID or the DHCPv4 option 61 client-identifier where the column is empty, so this is uncommon.
+
+A `-` in the MAC column means there was genuinely nothing to decode: no `hwaddr`, and a DUID or client-identifier that carries no link-layer address (a DUID-UUID, or an opaque string client-id). A declined address recorded before any client identification is the usual case.
 
 ### dhcp-forensics Reports No DHCPv4 Traffic
 

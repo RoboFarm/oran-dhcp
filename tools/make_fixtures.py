@@ -40,10 +40,24 @@ Fixtures written under tests/fixtures/:
                        unit has a unique DUID.
 
   kea-leases4.csv      Kea v4 CSV: valid header plus an expired row and an active
-                       row for the SAME IP (journal-dedup test) and a declined
-                       row.
+                       row for the SAME IP (journal-dedup test), a declined row,
+                       an active-then-released and an active-then-deleted
+                       (valid_lifetime 0) address, a lease whose MAC is only in
+                       the option 61 client-id, and a user-context vendor class
+                       with a Kea-escaped comma.
 
-  kea-leases6.csv      Kea v6 CSV: valid header plus active/expired ia-na rows.
+  kea-leases6.csv      Kea v6 CSV: valid header plus active/expired ia-na rows,
+                       a skipped prefix delegation, and rows with an EMPTY
+                       hwaddr column whose MAC must come out of the DUID
+                       (DUID-LLT, DUID-LL and an O-RAN ASCII DUID-EN).
+
+  kea-lfc-leases4.csv  A Kea memfile caught mid-Lease-File-Cleanup, with most
+  (+ .1 and .2)        of its leases in the .1/.2 generations rather than in the
+                       primary file.
+
+  kea-etc/             A Kea config directory: kea-dhcp4.conf pointing memfile
+                       at a non-default path (with comments and an <?include?>)
+                       and kea-dhcp6.conf using a MySQL lease backend.
 
 Run:  PYTHONPATH=src python tools/make_fixtures.py
 """
@@ -598,6 +612,11 @@ def make_dhcpd6_leases():
     return len(data)
 
 
+def _ascii_hex(text):
+    """Render text as colon-separated hex, the way Kea stores a DUID."""
+    return ":".join("%02x" % b for b in text.encode("ascii"))
+
+
 # ---------------------------------------------------------------------------
 # Fixture 5a: kea-leases4.csv
 # ---------------------------------------------------------------------------
@@ -619,6 +638,26 @@ def make_kea_leases4():
         # A normal distinct active lease.
         "192.168.36.170,34:fe:9e:3d:ad:a8,,3600,%d,1,0,0,oru-ada8,0,,0"
         % KEA_EXPIRE_FUTURE,
+        # Active, then RELEASED later in the journal. Kea replays in order, so
+        # the released row is the truth; an "active always wins" dedup would
+        # keep showing this address as held.
+        "192.168.36.173,34:fe:9e:3d:af:5c,,3600,%d,1,0,0,oru-af5c,0,,0"
+        % KEA_EXPIRE_FUTURE,
+        "192.168.36.173,34:fe:9e:3d:af:5c,,3600,%d,1,0,0,oru-af5c,3,,0"
+        % KEA_EXPIRE_FUTURE,
+        # Active, then DELETED: Kea marks a removed lease with valid_lifetime 0.
+        "192.168.36.174,34:fe:9e:3d:ad:11,,3600,%d,1,0,0,oru-ad11,0,,0"
+        % KEA_EXPIRE_FUTURE,
+        "192.168.36.174,34:fe:9e:3d:ad:11,,0,%d,1,0,0,oru-ad11,0,,0"
+        % KEA_EXPIRE_FUTURE,
+        # No hwaddr column, but an RFC 2132 option 61 client-id carrying it.
+        "192.168.36.175,,01:34:fe:9e:3d:ad:22,3600,%d,1,0,0,oru-ad22,0,,0"
+        % KEA_EXPIRE_FUTURE,
+        # user-context carrying the vendor class; Kea escapes the embedded
+        # comma as &#x2c; so it cannot break the CSV.
+        '192.168.36.176,34:fe:9e:3d:ad:33,,3600,%d,1,0,0,oru-ad33,0,'
+        '{"vendor-class": "%s"&#x2c; "onboarded": true},0'
+        % (KEA_EXPIRE_FUTURE, A3_VC),
     ]
     text = header + "\n" + "\n".join(rows) + "\n"
     path = os.path.join(FIXTURES_DIR, "kea-leases4.csv")
@@ -652,6 +691,17 @@ def make_kea_leases6():
         # Declined (state 1) ia-na address.
         "fd00:36::180,00:03:00:01:34:fe:9e:3d:af:5c,3600,%d,1,1800,"
         "0,3,128,0,0,,34:fe:9e:3d:af:5c,1,,1,0,0" % KEA_EXPIRE_FUTURE,
+        # EMPTY hwaddr column -- Kea leaves it blank when it could not derive a
+        # link-layer address. The MAC has to come out of the DUID-LLT instead.
+        "fd00:36::173,00:01:00:01:29:a4:f3:00:34:fe:9e:3d:ad:c8,3600,%d,1,1800,"
+        "0,1,128,0,0,oru-adc8,,0,,0,0,0" % KEA_EXPIRE_FUTURE,
+        # Same, for a DUID-LL.
+        "fd00:36::174,00:03:00:01:34:fe:9e:3d:ad:44,3600,%d,1,1800,"
+        "0,1,128,0,0,,,0,,0,0,0" % KEA_EXPIRE_FUTURE,
+        # DUID-EN (O-RAN enterprise 53148 = 0x0000cf9c) with the MAC as ASCII.
+        "fd00:36::175,00:02:00:00:cf:9c:%s,3600,%d,1,1800,"
+        "0,1,128,0,0,,,0,,0,0,0" % (_ascii_hex("34:fe:9e:3d:ad:55"),
+                                    KEA_EXPIRE_FUTURE),
     ]
     text = header + "\n" + "\n".join(rows) + "\n"
     path = os.path.join(FIXTURES_DIR, "kea-leases6.csv")
@@ -659,6 +709,108 @@ def make_kea_leases6():
     with open(path, "wb") as fh:
         fh.write(data)
     return len(data)
+
+
+# ---------------------------------------------------------------------------
+# Fixture 5c: Kea LFC generations (kea-lfc-leases4.csv{,.1,.2})
+# ---------------------------------------------------------------------------
+def make_kea_lfc_leases4():
+    """
+    A Kea memfile mid-Lease-File-Cleanup: most leases still live in the .2 and
+    .1 generations and only the newest writes are in the primary file. Reading
+    the primary alone (as the tool used to) shows one lease out of three.
+
+    Returns the byte count of the primary file; the generations are written as
+    a side effect.
+    """
+    header = ("address,hwaddr,client_id,valid_lifetime,expire,subnet_id,"
+              "fqdn_fwd,fqdn_rev,hostname,state,user_context,pool_id")
+    base = os.path.join(FIXTURES_DIR, "kea-lfc-leases4.csv")
+
+    # Oldest generation: two units bound.
+    gen2 = [
+        "192.168.36.190,34:fe:9e:3d:ad:a8,,3600,%d,1,0,0,oru-ada8,0,,0"
+        % KEA_EXPIRE_FUTURE,
+        "192.168.36.191,34:fe:9e:3d:ad:c8,,3600,%d,1,0,0,oru-adc8,0,,0"
+        % KEA_EXPIRE_FUTURE,
+    ]
+    # Next generation: .191 released.
+    gen1 = [
+        "192.168.36.191,34:fe:9e:3d:ad:c8,,3600,%d,1,0,0,oru-adc8,3,,0"
+        % KEA_EXPIRE_FUTURE,
+    ]
+    # Primary (newest): a third unit binds.
+    primary = [
+        "192.168.36.192,34:fe:9e:3d:af:5c,,3600,%d,1,0,0,oru-af5c,0,,0"
+        % KEA_EXPIRE_FUTURE,
+    ]
+
+    written = 0
+    for suffix, rows in ((".2", gen2), (".1", gen1), ("", primary)):
+        text = header + "\n" + "\n".join(rows) + "\n"
+        data = text.encode("ascii")
+        with open(base + suffix, "wb") as fh:
+            fh.write(data)
+        if suffix == "":
+            written = len(data)
+    return written
+
+
+# ---------------------------------------------------------------------------
+# Fixture 5d: Kea server configs (kea-etc/kea-dhcp{4,6}.conf)
+# ---------------------------------------------------------------------------
+def make_kea_configs():
+    """
+    A Kea /etc/kea directory exercising config discovery:
+
+      kea-dhcp4.conf   memfile at a NON-default path, with //, # and /* */
+                       comments and an <?include?> directive -- none of which
+                       is valid JSON, so it has to be pre-processed.
+      kea-dhcp6.conf   a MySQL lease backend, which has no CSV to read at all.
+
+    Returns the byte count of the DHCPv4 config; the rest are side effects.
+    """
+    etc_dir = os.path.join(FIXTURES_DIR, "kea-etc")
+    os.makedirs(etc_dir, exist_ok=True)
+
+    subnets = '[ { "id": 1, "subnet": "192.168.36.0/24" } ]\n'
+    with open(os.path.join(etc_dir, "kea-dhcp4-subnets.json"), "wb") as fh:
+        fh.write(subnets.encode("ascii"))
+
+    conf4 = """# Kea DHCPv4 config -- hash comment.
+{
+  // C++ style comment.
+  "Dhcp4": {
+    /* Block comment: the lease file is NOT at the compiled-in default. */
+    "interfaces-config": { "interfaces": [ "ens20.201" ] },
+    "lease-database": {
+      "type": "memfile",
+      "persist": true,
+      "name": "/var/lib/kea/oran-leases4.csv",
+      "lfc-interval": 3600
+    },
+    "subnet4": <?include "kea-dhcp4-subnets.json"?>
+  }
+}
+"""
+    conf6 = """{
+  "Dhcp6": {
+    "interfaces-config": { "interfaces": [ "ens20.201" ] },
+    "lease-database": {
+      "type": "mysql",
+      "name": "kea",
+      "host": "localhost",
+      "user": "kea"
+    }
+  }
+}
+"""
+    data4 = conf4.encode("ascii")
+    with open(os.path.join(etc_dir, "kea-dhcp4.conf"), "wb") as fh:
+        fh.write(data4)
+    with open(os.path.join(etc_dir, "kea-dhcp6.conf"), "wb") as fh:
+        fh.write(conf6.encode("ascii"))
+    return len(data4)
 
 
 # ---------------------------------------------------------------------------
@@ -674,6 +826,8 @@ def main():
         ("dhcpd6.leases", make_dhcpd6_leases),
         ("kea-leases4.csv", make_kea_leases4),
         ("kea-leases6.csv", make_kea_leases6),
+        ("kea-lfc-leases4.csv", make_kea_lfc_leases4),
+        ("kea-etc/kea-dhcp4.conf", make_kea_configs),
     ]
 
     print("Writing deterministic fixtures to %s" % FIXTURES_DIR)

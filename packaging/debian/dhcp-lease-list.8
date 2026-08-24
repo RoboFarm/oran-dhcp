@@ -1,4 +1,4 @@
-.TH DHCP-LEASE-LIST 8 "2026-06-02" "dhcp-oru-toolkit 2.0.0" "System Administration"
+.TH DHCP-LEASE-LIST 8 "2026-08-24" "dhcp-oru-toolkit 2.1.0" "System Administration"
 .SH NAME
 dhcp-lease-list \- display ISC or Kea DHCP IPv4 and IPv6 leases
 .SH SYNOPSIS
@@ -7,10 +7,14 @@ dhcp-lease-list \- display ISC or Kea DHCP IPv4 and IPv6 leases
 .SH DESCRIPTION
 .B dhcp-lease-list
 reads ISC DHCP (\fIdhcpd.leases\fR / \fIdhcpd6.leases\fR) or Kea DHCP
-(\fIkea-leases4.csv\fR / \fIkea-leases6.csv\fR) lease databases and prints a
-unified, color-coded view of IPv4 and IPv6 leases. It extracts the client MAC
-address from DHCPv6 DUIDs (DUID-LLT, DUID-EN, DUID-LL) where possible and
-de-duplicates Kea journal CSVs so that the last active entry per IP wins.
+(\fImemfile\fR CSV) lease databases and prints a unified, color-coded view of
+IPv4 and IPv6 leases. It extracts the client MAC address from DHCPv6 DUIDs
+(DUID-LLT, DUID-EN, DUID-LL) and, for Kea DHCPv4, from the option 61
+client-identifier, so units are identifiable by MAC on either server.
+.PP
+By default the command detects which DHCP server is installed; see
+.B SERVER SELECTION
+below.
 .PP
 With
 .B \-\-conflicts
@@ -19,14 +23,20 @@ IP addresses, or a single IP address held by multiple active MACs \(em the
 signature of the O-RU shared-xid IP-theft defect.
 .SH OPTIONS
 .TP
-.B \-\-server {isc,kea}
-DHCP server type (default: isc). Selects the default lease file paths.
+.B \-\-server {auto,isc,kea,both}
+DHCP server type (default: auto). \fBauto\fR detects what is installed,
+\fBboth\fR reports ISC and Kea in separate sections, and \fBisc\fR or
+\fBkea\fR force a single server.
 .TP
 .B \-\-v4\-lease \fIFILE\fR
-Path to the IPv4 lease file (overrides the default for the selected server).
+Path to the IPv4 lease file (overrides the path for the selected server).
 .TP
 .B \-\-v6\-lease \fIFILE\fR
-Path to the IPv6 lease file (overrides the default for the selected server).
+Path to the IPv6 lease file (overrides the path for the selected server).
+.TP
+.B \-\-kea\-config\-dir \fIDIR\fR
+Directory holding \fIkea-dhcp4.conf\fR and \fIkea-dhcp6.conf\fR
+(default: \fI/etc/kea\fR, then \fI/usr/local/etc/kea\fR).
 .TP
 .B \-\-v4\-only
 Show IPv4 leases only.
@@ -47,35 +57,95 @@ non-zero (2) if any HIGH-severity conflict is found.
 .TP
 .B \-\-version
 Show the program version and exit.
-.SH DEFAULT LEASE FILES
+.SH SERVER SELECTION
+With the default
+.BR \-\-server " " auto :
+.IP \(bu 3
+If \fB\-\-v4\-lease\fR or \fB\-\-v6\-lease\fR names a file, its format is
+sniffed \(em a Kea CSV header or ISC \fIlease\fR/\fIia-na\fR blocks \(em and
+the matching parser is used. Naming a lease file therefore does not require
+\fB\-\-server\fR as well.
+.IP \(bu 3
+Otherwise ISC is reported when its lease files exist, and Kea when a Kea
+config or lease file exists. A host running both gets a section for each.
+.IP \(bu 3
+If neither is found, ISC is assumed, as in earlier releases.
+.SH LEASE FILE LOCATIONS
 .TP
 .B ISC
-/var/lib/dhcp/dhcpd.leases and /var/lib/dhcp/dhcpd6.leases
+/var/lib/dhcp/dhcpd.leases and /var/lib/dhcp/dhcpd6.leases.
 .TP
 .B Kea
-/var/lib/kea/kea-leases4.csv and /var/lib/kea/kea-leases6.csv
+Read from the \fBname\fR entry of the \fBlease-database\fR block
+in \fIkea-dhcp4.conf\fR / \fIkea-dhcp6.conf\fR, falling back to Kea's own
+defaults, /var/lib/kea/kea-leases4.csv and /var/lib/kea/kea-leases6.csv, when
+no config can be read. The Kea config dialect (\fB//\fR, \fB#\fR and
+\fB/* */\fR comments and \fB<?include?>\fR directives) is handled.
+.PP
+Kea's Lease File Cleanup (LFC) does not rewrite the lease file in place: it
+moves the current file aside and consolidates the old generations through
+\fI<name>.1\fR, \fI<name>.2\fR and \fI<name>.completed\fR. Those generations
+are read alongside the primary file, in the same order Kea reloads them, so
+leases are still listed while a cleanup is in flight \(em or indefinitely, if
+LFC was interrupted by a crash. A
+.B [NOTE]
+line names each generation that was included.
+.PP
+When Kea is configured with a
+.B mysql
+or
+.B postgresql
+lease backend, or a
+.B memfile
+with \fBpersist\fR set to \fBfalse\fR,
+there is no lease file to read. This is reported explicitly; use
+.BR kea-shell (8)
+with the
+.B lease4-get-all
+/
+.B lease6-get-all
+commands, or query the database directly.
+.SH LEASE STATE
+Kea's memfile is a journal: each lease update appends a row, the last row for
+an address is authoritative, and a row with a
+.B valid_lifetime
+of 0 marks the lease deleted. Released, declined and reclaimed addresses are
+therefore reported as such rather than as still held. Kea state codes map as
+0=active, 1=declined, 2=expired, 3=released.
+.PP
+Lease timestamps are UTC on both servers, and expiry is evaluated against UTC.
 .SH EXAMPLES
 .TP
-List active ISC leases (IPv4 and IPv6):
+List active leases from whichever server is installed:
 .B dhcp-lease-list
 .TP
 Show every lease including expired/free:
 .B dhcp-lease-list \-\-all
 .TP
-Read Kea CSV databases:
+Read Kea lease databases explicitly:
 .B dhcp-lease-list \-\-server kea
 .TP
-Inspect specific lease files and only IPv4:
-.B dhcp-lease-list \-\-v4\-only \-\-v4\-lease /tmp/dhcpd.leases
+Report both DHCP servers on a host that runs each:
+.B dhcp-lease-list \-\-server both
+.TP
+Inspect a specific lease file (format detected automatically):
+.B dhcp-lease-list \-\-v4\-only \-\-v4\-lease /var/lib/kea/kea-leases4.csv
+.TP
+Use a Kea config kept outside /etc/kea:
+.B dhcp-lease-list \-\-kea\-config\-dir /opt/kea/etc
 .TP
 Flag IP-theft-style conflicts:
 .B dhcp-lease-list \-\-conflicts
 .SH EXIT STATUS
-Returns 0 on success and non-zero on error (for example, an unreadable lease
-file).
+Returns 0 on success, and 2 when
+.B \-\-conflicts
+finds a HIGH-severity conflict.
 .SH SEE ALSO
 .BR dhcp-forensics (8),
 .BR dhcpd (8),
-.BR kea-dhcp4 (8)
+.BR kea-dhcp4 (8),
+.BR kea-dhcp6 (8),
+.BR kea-lfc (8),
+.BR kea-shell (8)
 .SH AUTHOR
 labuser, as part of dhcp-oru-toolkit.

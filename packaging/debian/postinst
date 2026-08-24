@@ -20,7 +20,7 @@ case "$1" in
                 echo "Backed up existing ${ORIG} to ${BACKUP}"
             fi
         fi
-        echo "dhcp-oru-toolkit 2.0.0 installed."
+        echo "dhcp-oru-toolkit 2.1.0 installed."
         echo "  dhcp-lease-list -> ${SBIN}/dhcp-lease-list"
         echo "  dhcp-forensics  -> ${SBIN}/dhcp-forensics"
         ;;

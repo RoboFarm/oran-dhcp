@@ -7,9 +7,9 @@ export PYTHONPATH := src
 # User-manual sources/outputs (rendered with the bundled stdlib-only converter;
 # this environment has no pandoc / LibreOffice / python-docx).
 MANUAL_MD  ?= docs/USER_MANUAL.md
-MANUAL_DOCX ?= docs/DHCP_Toolkit_v2.0.0_User_Manual.docx
-MANUAL_TITLE ?= DHCP O-RU Toolkit v2.0.0 - User Manual
-MANUAL_DATE  ?= 2026-06-03T00:00:00Z
+MANUAL_DOCX ?= docs/DHCP_Toolkit_v2.1.0_User_Manual.docx
+MANUAL_TITLE ?= DHCP O-RU Toolkit v2.1.0 - User Manual
+MANUAL_DATE  ?= 2026-08-24T00:00:00Z
 
 .PHONY: test fixtures deb demo manual clean
 

@@ -1,3 +1,48 @@
+dhcp-oru-toolkit (2.1.0) stable; urgency=medium
+
+  * dhcp-lease-list: make Kea DHCP a first-class server rather than a
+    hardcoded pair of CSV paths. Kea was nominally supported since 1.3.0, but
+    on a real Kea host the viewer routinely showed nothing, stale state, or
+    leases with no MAC:
+      - --server now defaults to "auto" and detects what is installed, so a
+        bare "dhcp-lease-list" works on a Kea-only host. An explicitly named
+        lease file is identified by sniffing its format, so --v4-lease/
+        --v6-lease no longer have to be paired with --server. "both" reports
+        ISC and Kea side by side; "isc" and "kea" still force one server.
+      - Kea lease files are located from "lease-database": { "name": ... } in
+        /etc/kea/kea-dhcp4.conf / kea-dhcp6.conf instead of assuming
+        /var/lib/kea/kea-leases{4,6}.csv. The Kea config dialect (//, # and
+        /* */ comments, <?include?> directives) is pre-processed before
+        parsing. Added --kea-config-dir to point at a non-standard location.
+      - A MySQL or PostgreSQL lease backend, or a memfile with
+        "persist": false, is now reported as such instead of printing an
+        empty table with no explanation.
+      - Lease File Cleanup generations (<name>.1, <name>.2, <name>.completed)
+        are read alongside the primary lease file, in Kea's own load order.
+        While a cleanup is in flight -- or permanently, if LFC was interrupted
+        -- most leases live in those files, and reading only the primary file
+        under-reported or missed them entirely.
+      - Kea's journal is now replayed with Kea's own semantics: the last row
+        for an address wins, and a row with valid_lifetime 0 deletes it. The
+        previous "active always wins" rule kept released, declined and
+        reclaimed addresses on display as though they were still held.
+      - The MAC is recovered from the DHCPv6 DUID (DUID-LLT, DUID-LL and the
+        O-RAN ASCII DUID-EN) when Kea leaves the hwaddr column empty, and from
+        the DHCPv4 option 61 client-id (RFC 2132 and RFC 4361 forms) for v4.
+        Previously such leases displayed "-" and could not be tied to a unit.
+      - Kea expiry timestamps are rendered in UTC, matching the ISC lease
+        files and the "Expires (UTC)" column heading; they were being
+        converted with the server's local clock.
+      - The lease start time is derived from expire - valid_lifetime, and a
+        vendor class stored in the lease's user-context is displayed in the
+        Vendor Class column (Kea's &#xNN; CSV escapes are decoded).
+  * dhcp-lease-list: fixed lease-expiry evaluation, which compared a UTC lease
+    timestamp against the local clock. On a server east of UTC this hid
+    still-valid leases from the default view; west of it, expired leases
+    lingered. This affected ISC leases as much as Kea ones.
+
+ -- labuser <labuser@dhcp-server>  Mon, 24 Aug 2026 00:00:00 +0000
+
 dhcp-oru-toolkit (2.0.0) stable; urgency=medium
 
   * Renamed package dhcp-lease-list -> dhcp-oru-toolkit, with the proper

@@ -7,7 +7,7 @@ clean for pipes, files and tests.
 Pure stdlib only.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ANSI colors
 RESET = "\033[0m"
@@ -20,10 +20,17 @@ DIM = "\033[2m"
 
 
 def is_expired(expires_str):
-    """Return True if a ``'YYYY/MM/DD HH:MM:SS'`` timestamp is in the past."""
+    """Return True if a ``'YYYY/MM/DD HH:MM:SS'`` timestamp is in the past.
+
+    Lease timestamps are UTC on both servers -- ISC writes UTC wall clock into
+    its lease files, and the Kea parser renders its epoch column as UTC -- so
+    the comparison is against UTC now, not local now.  Comparing a UTC lease
+    against a local clock silently hid still-valid leases on any server east
+    of Greenwich (and kept expired ones on display west of it).
+    """
     try:
         exp = datetime.strptime(expires_str, "%Y/%m/%d %H:%M:%S")
-        return exp < datetime.now()
+        return exp < datetime.now(timezone.utc).replace(tzinfo=None)
     except Exception:
         return False
 
