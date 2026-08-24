@@ -33,6 +33,7 @@ from dhcp_toolkit.leases.parsers import (
 )
 from dhcp_toolkit.leases.display import is_expired
 from dhcp_toolkit.leases import kea_config
+from dhcp_toolkit.leases import parsers
 from dhcp_toolkit.leases.cli import sniff_server, detect_servers, kea_lease_path
 
 
@@ -417,3 +418,141 @@ def test_kea_lease_path_surfaces_the_backend_note():
     ensure_fixtures()
     path, note = kea_lease_path("6", None, (_kea_etc(),))
     assert note and "mysql" in note
+
+
+# --------------------------------------------------------------------------
+# Permission handling (regression: 2.1.0 reported an unreadable lease file as
+# "not found", because Path.exists() either raises or silently returns False
+# on a permission error depending on the Python version).
+#
+# Both the stat and the read are denied for one sentinel path, so the tests are
+# deterministic and need no unprivileged user -- the suite runs as root, where
+# real permission bits would simply be bypassed.
+# --------------------------------------------------------------------------
+
+_DENIED = "/var/lib/kea/denied-leases4.csv"
+
+
+def _deny(prefix):
+    """Deny stat() and read_text() for paths starting with ``prefix``.
+
+    Returns a restore callable; always call it in a finally block.
+    """
+    import pathlib as _pathlib
+
+    real_stat = parsers.os.stat
+    real_read = _pathlib.Path.read_text
+
+    def fake_stat(path, *args, **kwargs):
+        if str(path).startswith(prefix):
+            raise PermissionError(13, "Permission denied", str(path))
+        return real_stat(path, *args, **kwargs)
+
+    def fake_read(self, *args, **kwargs):
+        if str(self).startswith(prefix):
+            raise PermissionError(13, "Permission denied", str(self))
+        return real_read(self, *args, **kwargs)
+
+    parsers.os.stat = fake_stat
+    _pathlib.Path.read_text = fake_read
+
+    def restore():
+        parsers.os.stat = real_stat
+        _pathlib.Path.read_text = real_read
+
+    return restore
+
+
+def test_path_present_counts_unreadable_file_as_present():
+    # A file that exists but cannot be stat'd is present, not missing --
+    # otherwise the caller reports "not found" for a lease file that is there.
+    restore = _deny(_DENIED)
+    try:
+        assert parsers.path_present(_DENIED) is True
+    finally:
+        restore()
+
+
+def test_path_present_reports_genuinely_absent_file():
+    assert parsers.path_present("/nonexistent/dir/kea-leases4.csv") is False
+
+
+def test_kea_lease_files_keeps_unreadable_primary():
+    # The unreadable primary must stay in the candidate list so the read that
+    # follows can report the real reason (permission), not silently drop it.
+    restore = _deny(_DENIED)
+    try:
+        assert _DENIED in parsers.kea_lease_files(_DENIED)
+    finally:
+        restore()
+
+
+def _capture_denied_parse(parse_fn):
+    import io
+    import contextlib
+
+    restore = _deny(_DENIED)
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            leases = parse_fn(_DENIED)
+    finally:
+        restore()
+    return leases, buf.getvalue()
+
+
+def test_parse_kea_v4_reports_permission_denied_once():
+    # One actionable error naming the directory -- never "not found", never a
+    # traceback, and not repeated per LFC generation.
+    leases, out = _capture_denied_parse(parsers.parse_kea_v4)
+    assert leases == []
+    assert out.count("Permission denied") == 1, out
+    assert "sudo" in out, out
+    assert "not found" not in out, out
+
+
+def test_parse_kea_v6_reports_permission_denied_once():
+    leases, out = _capture_denied_parse(parsers.parse_kea_v6)
+    assert leases == []
+    assert out.count("Permission denied") == 1, out
+    assert "sudo" in out, out
+    assert "not found" not in out, out
+
+
+def test_unreadable_kea_config_is_reported_not_silently_defaulted():
+    # /etc/kea is 0750 on a stock Ubuntu install; an unprivileged run must say
+    # so rather than quietly falling back to the default path.
+    import pathlib as _pathlib
+
+    cfg_dir = "/etc/kea-denied-test"
+    real_stat = kea_config.os.stat
+    real_open = __builtins__["open"] if isinstance(__builtins__, dict) else __builtins__.open
+
+    def fake_stat(path, *args, **kwargs):
+        if str(path).startswith(cfg_dir):
+            raise PermissionError(13, "Permission denied", str(path))
+        return real_stat(path, *args, **kwargs)
+
+    def fake_open(path, *args, **kwargs):
+        if str(path).startswith(cfg_dir):
+            raise PermissionError(13, "Permission denied", str(path))
+        return real_open(path, *args, **kwargs)
+
+    kea_config.os.stat = fake_stat
+    if isinstance(__builtins__, dict):
+        __builtins__["open"] = fake_open
+    else:
+        __builtins__.open = fake_open
+    try:
+        source = kea_config.discover_lease_source("4", config_dirs=(cfg_dir,))
+    finally:
+        kea_config.os.stat = real_stat
+        if isinstance(__builtins__, dict):
+            __builtins__["open"] = real_open
+        else:
+            __builtins__.open = real_open
+
+    assert source.note and "permission denied" in source.note.lower(), source.note
+    assert "sudo" in source.note
+    # Still usable: falls back to Kea's default lease path.
+    assert source.path == kea_config.DEFAULT_KEA_V4

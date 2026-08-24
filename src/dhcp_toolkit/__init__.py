@@ -9,4 +9,4 @@ This package bundles two zero-dependency tools:
 Nothing is imported eagerly at package level; import the submodule you need.
 """
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"

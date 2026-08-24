@@ -168,8 +168,16 @@ def find_config(family, config_dirs=None):
     name = "kea-dhcp%s.conf" % family
     for d in dirs:
         cand = os.path.join(d, name)
-        if os.path.isfile(cand):
+        try:
+            os.stat(cand)
+        except PermissionError:
+            # Present but in an unsearchable directory (/etc/kea is 0750 on a
+            # stock Ubuntu Kea install).  Report it so the caller can say so,
+            # rather than pretending no config exists.
             return cand
+        except OSError:
+            continue
+        return cand
     return None
 
 
@@ -186,6 +194,18 @@ def discover_lease_source(family, config_dirs=None):
     config_path = find_config(family, config_dirs)
     if config_path is None:
         return KeaLeaseSource(family=family, path=default_path)
+
+    try:
+        with open(config_path, "r"):
+            pass
+    except PermissionError:
+        return KeaLeaseSource(
+            family=family, path=default_path, config_path=config_path,
+            note="cannot read %s (permission denied -- re-run with sudo); "
+                 "using the default lease file path" % config_path,
+        )
+    except OSError:
+        pass
 
     cfg = read_kea_config(config_path)
     if cfg is None:

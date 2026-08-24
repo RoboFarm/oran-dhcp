@@ -27,6 +27,7 @@ import argparse
 from .. import __version__
 from .parsers import (
     parse_isc_v4, parse_isc_v6, parse_kea_v4, parse_kea_v6, kea_lease_files,
+    path_present,
 )
 from .display import is_expired, print_leases
 from .conflicts import find_conflicts
@@ -112,7 +113,7 @@ def detect_servers(args, config_dirs):
 
     found = []
 
-    isc_present = any(os.path.exists(p) for p in (DEFAULT_ISC_V4, DEFAULT_ISC_V6))
+    isc_present = any(path_present(p) for p in (DEFAULT_ISC_V4, DEFAULT_ISC_V6))
     if isc_present:
         found.append("isc")
 

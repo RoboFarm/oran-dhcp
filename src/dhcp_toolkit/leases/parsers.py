@@ -19,6 +19,7 @@ the address.  They also read the lease files left behind by Lease File Cleanup
 Pure stdlib only.
 """
 
+import os
 import re
 import csv
 import json
@@ -290,6 +291,31 @@ def epoch_to_datetime(epoch_str):
         return "-"
 
 
+def path_present(path):
+    """True if ``path`` exists, *including* when it exists but is unreadable.
+
+    ``Path.exists()`` cannot be used for this.  When a parent directory is not
+    searchable it raises ``PermissionError`` on Python 3.12 and older, and
+    quietly returns False on 3.13 and newer (pathlib changed to swallow every
+    OSError).  Either way a lease file that is present but unreadable came out
+    as "not found", which points the operator at the wrong problem: the stock
+    Ubuntu Kea package ships /var/lib/kea and its lease files owned by _kea and
+    unreadable by anyone else, so every unprivileged run looked like an empty
+    server instead of a missing sudo.
+
+    Only a genuine ENOENT counts as absent here.  A permission error means the
+    file *is* there, so it stays in the candidate list and the read that
+    follows reports the real reason.
+    """
+    try:
+        os.stat(path)
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
 def kea_lease_files(path):
     """Return every existing lease file for a Kea memfile path, oldest first.
 
@@ -310,14 +336,14 @@ def kea_lease_files(path):
     """
     files = []
     completed = path + ".completed"
-    if Path(completed).exists():
+    if path_present(completed):
         files.append(completed)
     else:
         for suffix in (".2", ".1"):
             candidate = path + suffix
-            if Path(candidate).exists():
+            if path_present(candidate):
                 files.append(candidate)
-    if Path(path).exists():
+    if path_present(path):
         files.append(path)
     return files
 
@@ -361,6 +387,7 @@ def _read_kea_rows(path, family):
         print(f"{YELLOW}[WARN] Kea DHCPv{family} lease file not found: {path}{RESET}")
         return
 
+    denied_reported = False
     for filename in files:
         try:
             text = Path(filename).read_text(errors="replace")
@@ -368,7 +395,15 @@ def _read_kea_rows(path, family):
             # Raced with LFC between the existence check and the read.
             continue
         except PermissionError:
-            print(f"{RED}[ERROR] Permission denied: {filename} (try sudo){RESET}")
+            # Reported once per parse, naming the directory rather than each
+            # candidate: when the directory itself is unsearchable we cannot
+            # tell which of the LFC generations are really there, so listing
+            # them individually would invent files that may not exist.
+            if not denied_reported:
+                directory = os.path.dirname(filename) or "."
+                print(f"{RED}[ERROR] Permission denied reading the Kea DHCPv{family} "
+                      f"lease files in {directory} -- re-run with sudo{RESET}")
+                denied_reported = True
             continue
 
         if filename != path:

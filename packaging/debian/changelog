@@ -1,3 +1,24 @@
+dhcp-oru-toolkit (2.1.1) stable; urgency=medium
+
+  * Fix Kea lease files that exist but are not readable being reported as
+    "not found".  On a stock Ubuntu Kea install /var/lib/kea and its lease
+    files are owned by _kea and unreadable by anyone else, so every
+    unprivileged run looked like an empty DHCP server instead of a missing
+    sudo.  The 2.1.0 LFC support probed candidate files with Path.exists(),
+    which raises PermissionError on Python 3.12 and older and silently
+    returns False on 3.13 and newer -- a traceback on one and a misleading
+    "not found" on the other.  Lease files are now probed with an explicit
+    stat: only a genuine ENOENT counts as absent, and an unreadable file
+    stays in the candidate list so the read reports the real reason.
+  * Report permission failures once per address family, naming the directory
+    and saying to re-run with sudo, instead of once per LFC generation (the
+    generations cannot be enumerated when the directory is unsearchable, so
+    listing them individually invented files that may not exist).
+  * Report an unreadable Kea config (/etc/kea is 0750 on a stock install)
+    instead of silently falling back to the default lease path.
+
+ -- labuser <labuser@dhcp-server>  Mon, 24 Aug 2026 17:30:00 +0000
+
 dhcp-oru-toolkit (2.1.0) stable; urgency=medium
 
   * dhcp-lease-list: make Kea DHCP a first-class server rather than a
